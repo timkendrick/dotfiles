@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+    echo "Usage: git rebase-onto <base> <feature>"
+}
+
+# If no arguments were passed, print the usage instructions
+if [[ $# -eq 0 ]]; then
+  usage
+  exit 1
+fi
+
+# Read the base and feature branches from the script arguments, defaulting to an empty string
+BASE="${1:-}"
+FEATURE="${2:-}"
+
+# If either the base or feature branch has not been specified, print usage instructions and exit
+if [[ -z "$BASE" || -z "$FEATURE" ]]; then
+  usage
+  exit 1
+fi
+
+git rebase --onto "$BASE" "$(git merge-base "$BASE" "$FEATURE")" "$FEATURE"

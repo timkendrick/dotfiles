@@ -1,0 +1,12 @@
+#compdef git-resolve-all-conflicts
+#description resolve all conflicts using the specified merge strategy
+
+_git_resolve-all-conflicts() {
+    local -a strategies
+
+    strategies=('--ours' '--theirs' '--union')
+
+    _describe 'strategy' strategies
+}
+
+_git_resolve-all-conflicts "$@"

@@ -1,0 +1,18 @@
+#compdef git-rebase-onto
+#description rebase a feature branch onto a base branch
+
+_git_rebase_onto() {
+    local branches
+
+    branches=($(git branch --all --format='%(refname:short)' 2>/dev/null)) || branches=()
+
+    if [[ -z $branches ]]; then
+        return
+    fi
+
+    _arguments \
+        ':base branch:_values "Base branch" ${branches[@]}' \
+        ':feature branch:_values "Feature branch" ${branches[@]}'
+}
+
+_git_rebase_onto "$@"

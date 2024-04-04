@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "Usage:   git resolve-all-conflicts <strategy>"
+  echo ""
+  echo "Example: git resolve-all-conflicts --ours"
+  echo "Example: git resolve-all-conflicts --union"
+  echo "Example: git resolve-all-conflicts --theirs"
+}
+
+# If no arguments were passed, print the usage instructions
+if [[ $# -eq 0 ]]; then
+  usage
+  exit 1
+fi
+
+git-resolve-all-conflicts() {
+  STRATEGY="$1"
+
+  if [ -z "$STRATEGY" ]; then
+    usage
+    exit 1
+  fi
+
+  for filename in $(git diff --diff-filter=U --name-only); do
+    echo "Resolving conflict using $STRATEGY for $filename"
+    git-resolve-conflict "$STRATEGY" "$filename";
+  done
+}
+
+git-resolve-all-conflicts "$@"

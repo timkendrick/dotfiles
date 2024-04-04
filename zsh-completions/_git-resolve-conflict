@@ -1,0 +1,15 @@
+#compdef git-resolve-conflict
+#description resolve a conflict using the specified merge strategy
+
+_git_resolve-conflict() {
+    local -a strategies conflicts
+
+    strategies=('--ours' '--theirs' '--union')
+    # Get a list of all files with merge conflicts
+    conflicts=($(git ls-files --unmerged | cut -f 2 | sort -u)) || conflicts=()
+
+    _describe 'strategy' strategies
+    _describe 'file' conflicts
+}
+
+_git_resolve-conflict "$@"
