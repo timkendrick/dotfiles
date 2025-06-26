@@ -1,0 +1,70 @@
+// Place your key bindings in this file to overwrite the defaults
+[
+    {
+        "key": "cmd+k h",
+        "command": "workbench.action.focusLeftGroup"
+    },
+    {
+        "key": "cmd+k j",
+        "command": "workbench.action.focusBelowGroup"
+    },
+    {
+        "key": "cmd+k k",
+        "command": "workbench.action.focusAboveGroup"
+    },
+    {
+        "key": "cmd+k l",
+        "command": "workbench.action.focusRightGroup"
+    },
+    {
+        "key": "shift+cmd+j",
+        "command": "editor.action.moveLinesDownAction",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "shift+cmd+k",
+        "command": "editor.action.moveLinesUpAction",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "ctrl+cmd+j",
+        "command": "editor.action.copyLinesDownAction",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "ctrl+cmd+k",
+        "command": "editor.action.copyLinesUpAction",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "shift+cmd+i",
+        "command": "extension.companionFileSwitcher.switch"
+    },
+    {
+        "key": "cmd+/",
+        "command": "-editor.action.insertSnippet",
+        "when": "editorTextFocus && resourceLangId == 'racket'"
+    },
+    {
+        "key": "alt+cmd+1",
+        "command": "workbench.action.focusFirstSideEditor"
+    },
+    {
+        "key": "alt+cmd+2",
+        "command": "workbench.action.focusSecondSideEditor"
+    },
+    {
+        "key": "shift+alt+f",
+        "command": "-editor.action.formatDocument.none",
+        "when": "editorTextFocus && !editorHasDocumentFormattingProvider && !editorReadonly"
+    },
+    {
+        "key": "shift+alt+f",
+        "command": "-editor.action.formatDocument",
+        "when": "editorHasDocumentFormattingProvider && editorTextFocus && !editorReadonly && !inCompositeEditor"
+    },
+    {
+        "key": "shift+alt+f",
+        "command": "editor.action.formatChanges"
+    }
+]

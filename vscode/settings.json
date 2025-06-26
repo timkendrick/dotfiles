@@ -1,0 +1,254 @@
+{
+  "window.title": "${rootName}${separator}${activeRepositoryBranchName}${separator}${profileName}",
+  "workbench.colorTheme": "Atom One Dark",
+  "workbench.preferredDarkColorTheme": "Atom One Dark",
+  "workbench.colorCustomizations": {
+    "editorInlayHint.background": "#ffffff08",
+    "[Atom One Dark]": {
+      "editorInlayHint.background": "#528bff1a"
+    }
+  },
+  "files.exclude": {
+    "**/*.min.{js,css}": true
+  },
+  "files.watcherExclude": {
+    "**/dist/**": true
+  },
+  "files.associations": {
+    "*.rkt": "racket"
+  },
+  "files.eol": "\n",
+  "editor.minimap.enabled": false,
+  "editor.stickyScroll.enabled": true,
+  "editor.lineNumbers": "relative",
+  "editor.tabSize": 2,
+  "editor.cursorBlinking": "smooth",
+  "editor.rulers": [100, 120],
+  "editor.renderWhitespace": "none",
+  "editor.scrollBeyondLastLine": false,
+  "editor.parameterHints.enabled": false,
+  "editor.acceptSuggestionOnCommitCharacter": false,
+  "debug.saveBeforeStart": "none",
+  "debug.allowBreakpointsEverywhere": true,
+  "debug.focusWindowOnBreak": true,
+  "workbench.editor.revealIfOpen": true,
+  "workbench.editor.highlightModifiedTabs": true,
+  "workbench.editor.openPositioning": "last",
+  "diffEditor.renderSideBySide": true,
+  "diffEditor.ignoreTrimWhitespace": false,
+  "liveshare.showInStatusBar": "whileCollaborating",
+  "debug.openExplorerOnEnd": true,
+  "terminal.integrated.scrollback": 10000,
+  "terminal.integrated.env.osx": {
+    "PATH": "./node_modules/.bin"
+  },
+  "vim.textwidth": 120,
+  "vim.ignorecase": false,
+  "vim.camelCaseMotion.enable": true,
+  "vim.leader": "<space>",
+  "vim.normalModeKeyBindingsNonRecursive": [
+    {
+      "before": ["g", "]"],
+      "after": [],
+      "commands": [
+        { "command": "editor.action.goToTypeDefinition", "args": [] }
+      ]
+    },
+    {
+      "before": ["[", "l"],
+      "after": [],
+      "commands": [{ "command": "editor.action.marker.prev", "args": [] }]
+    },
+    {
+      "before": ["]", "l"],
+      "after": [],
+      "commands": [{ "command": "editor.action.marker.next", "args": [] }]
+    },
+    {
+      "before": ["[", "space"],
+      "after": [],
+      "commands": [{ "command": "editor.action.insertLineBefore", "args": [] }]
+    },
+    {
+      "before": ["]", "space"],
+      "after": [],
+      "commands": [{ "command": "editor.action.insertLineAfter", "args": [] }]
+    },
+    {
+      "before": ["[", "e"],
+      "after": [],
+      "commands": [{ "command": "editor.action.moveLinesUpAction", "args": [] }]
+    },
+    {
+      "before": ["]", "e"],
+      "after": [],
+      "commands": [
+        { "command": "editor.action.moveLinesDownAction", "args": [] }
+      ]
+    },
+    {
+      "before": ["[", "n"],
+      "after": [],
+      "commands": [
+        { "command": "editor.action.dirtydiff.previous", "args": [] }
+      ]
+    },
+    {
+      "before": ["]", "n"],
+      "after": [],
+      "commands": [{ "command": "editor.action.dirtydiff.next", "args": [] }]
+    }
+  ],
+  "vim.visualModeKeyBindingsNonRecursive": [
+    {
+      "before": ["*"],
+      "after": ["\"", "f", "y", "/", "<C-r>", "f", "<Enter>"]
+    }
+  ],
+  "companionFileSwitcher.friendlyName": {
+    "html": "HTML Template",
+    "jsx": "JavaScript component",
+    "tsx": "TypeScript component",
+    "css": "CSS",
+    "js": "JavaScript implementation",
+    "ts": "TypeScript implementation",
+    "spec.js": "JavaScript tests",
+    "spec.ts": "TypeScript tests",
+    "css.d.ts": "CSS typings"
+  },
+  "unsaved-files.viewOnExplorer.enabled": true,
+  "unsaved-files.statusBar.enabled": false,
+  "git.allowForcePush": true,
+  "git.allowNoVerifyCommit": true,
+  "git.alwaysShowStagedChangesResourceGroup": true,
+  "git.autofetch": true,
+  "git.autofetchPeriod": 60,
+  "git.closeDiffOnOperation": true,
+  "git-graph.showStatusBarItem": false,
+  "gitlens.codeLens.recentChange.enabled": false,
+  "gitlens.codeLens.authors.enabled": false,
+  "gitlens.currentLine.enabled": false,
+  "gitlens.hovers.currentLine.enabled": false,
+  "gitlens.blame.format": "${message|40?} ${author|16-} ${agoOrDate|14-}",
+  "gitlens.blame.avatars": false,
+  "gitlens.keymap": "chorded",
+  "gitlens.advanced.messages": {
+    "suppressCommitHasNoPreviousCommitWarning": false,
+    "suppressCommitNotFoundWarning": false,
+    "suppressFileNotUnderSourceControlWarning": false,
+    "suppressGitVersionWarning": false,
+    "suppressLineUncommittedWarning": false,
+    "suppressNoRepositoryWarning": false
+  },
+  "emmet.excludeLanguages": ["markdown", "typescriptreact"],
+  "json.format.enable": false,
+  "liveshare.populateGitCoAuthors": "never",
+  "typescript.preferences.quoteStyle": "single",
+  "typescript.reportStyleChecksAsWarnings": false,
+  "css.lint.emptyRules": "ignore",
+  "prettier.requireConfig": true,
+  "prettier.singleQuote": true,
+  "prettier.trailingComma": "all",
+  "prettier.quoteProps": "consistent",
+  "eslint.workingDirectories": [
+    {
+      "mode": "auto"
+    }
+  ],
+  "eslint.rules.customizations": [
+    { "rule": "*", "severity": "warn" }
+  ],
+  "crates.compatibleDecorator": "🟢 ${version}",
+  "crates.incompatibleDecorator": "🔴 ${version}",
+  "markiscodecoverage.enableOnStartup": false,
+  "projectManager.git.maxDepthRecursion": 1,
+  "symlink-follow.showFileInExplorerAfterSymlinkFollow": true,
+  "todo-tree.highlights.useColourScheme": true,
+  "todo-tree.highlights.backgroundColourScheme": [
+    "red",
+    "orange",
+    "#ffbd2a",
+    "#f06292",
+    "blue",
+    "indigo",
+    "violet"
+  ],
+  "todo-tree.highlights.foregroundColourScheme": [
+    "white",
+    "black",
+    "#333",
+    "white",
+    "white",
+    "white",
+    "black"
+  ],
+  "codesnap.showLineNumbers": false,
+  "codesnap.showWindowControls": false,
+  "codesnap.backgroundColor": "#FFFFFF",
+  "codesnap.transparentBackground": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": [
+      "source.fixAll"
+    ]
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": [
+      "source.fixAll"
+    ]
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": [
+      "source.fixAll"
+    ]
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": [
+      "source.fixAll"
+    ]
+  },
+  "[vue]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.formatOnSave": true
+  },
+  "[rust]": {
+    "editor.tabSize": 4,
+    "editor.defaultFormatter": "statiolake.vscode-rustfmt",
+    "editor.formatOnSave": true
+  },
+  "settingsSync.ignoredSettings": [
+    "editor.fontFamily",
+    "editor.fontSize",
+    "terminal.integrated.fontSize",
+    "debug.console.fontSize",
+    "scm.inputFontSize",
+    "projectManager.git.baseFolders",
+    "bun.runtime",
+    "[typescript]",
+    "[typescriptreact]",
+    "[javascript]",
+    "[javascriptreact]"
+  ],
+  "projectManager.git.baseFolders": [
+    "~/Sites"
+  ],
+  "editor.fontFamily": "'Bitstream Vera Sans Mono', Menlo, Monaco, 'Courier New', monospace",
+  "scm.inputFontSize": 12,
+  "terminal.integrated.fontSize": 14,
+  "debug.console.fontSize": 11,
+  "bun.runtime": "/Users/tim/.bun/bin/bun"
+}
