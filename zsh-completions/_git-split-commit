@@ -1,0 +1,27 @@
+#compdef git-split-commit
+#description split a single git commit into multiple focused commits (interactive or with plan file)
+
+# Completion for git-split-commit command
+
+_git-split-commit() {
+    local curcontext="$curcontext" state line
+    typeset -A opt_args
+    
+    # Get a list of all git commits
+    local -a git_commits
+    git_commits=($(git log --format="%H" 2>/dev/null))
+
+    # Function to complete git commits
+    __git_commits() {
+        if [[ -n "$git_commits" ]]; then
+            _describe -t commits 'commit' git_commits
+        fi
+    }
+
+    _arguments -C \
+        '(- :)--help[Show usage information]' \
+        '--validate[Validate the plan without executing the split]' \
+        '1:commit hash:__git_commits'
+}
+
+_git-split-commit "$@" 

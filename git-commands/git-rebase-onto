@@ -2,7 +2,10 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: git rebase-onto <base> <feature>"
+    local command="$(basename "$0")"
+    echo "Usage: $command <base> <feature>"
+    echo ""
+    echo "Rebase the commits from the feature branch at the point where it diverged from the base branch"
 }
 
 # If no arguments were passed, print the usage instructions
