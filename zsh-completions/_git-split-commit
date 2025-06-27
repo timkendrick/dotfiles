@@ -1,9 +1,9 @@
-#compdef git-fixup
-#description apply an existing fixup commit to a base commit via rebase
+#compdef git-split-commit
+#description split a single git commit into multiple focused commits
 
-# Completion for git-fixup command
+# Completion for git-split-commit command
 
-_git-fixup() {
+_git-split-commit() {
     local curcontext="$curcontext" state line
     typeset -A opt_args
     
@@ -20,10 +20,8 @@ _git-fixup() {
 
     _arguments -C \
         '(- :)--help[Show usage information]' \
-        '--force[Allow rebase even if merge commits exist]' \
-        '--amend[Create an amend fixup commit that updates the commit message]' \
-        '1:base commit:__git_commits' \
-        '2:fixup commit:__git_commits'
+        '--validate[Validate the plan without executing the split]' \
+        '1:commit hash:__git_commits'
 }
 
-_git-fixup "$@"
+_git-split-commit "$@" 
