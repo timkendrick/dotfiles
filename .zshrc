@@ -17,15 +17,11 @@ DOTFILES_PATH="${0:a:h}"
 ZSH_ENV_PATH="$DOTFILES_PATH/zsh-env"
 ZSH_PLUGINS_PATH="$DOTFILES_PATH/zsh-plugins"
 ZSH_COMPLETIONS_PATH="$DOTFILES_PATH/zsh-completions"
-GIT_COMMANDS_PATH="$DOTFILES_PATH/git-commands"
 
 # Initialize shell environment variables
 for config in "$ZSH_ENV_PATH"/*.env(D); do
     [[ -f "$config" ]] && export $(cat "$config" | xargs)
 done
-
-# Enable custom git helper scripts
-PATH="$GIT_COMMANDS_PATH:$PATH"
 
 # Enable custom zsh completions
 FPATH="$ZSH_COMPLETIONS_PATH:$FPATH"
