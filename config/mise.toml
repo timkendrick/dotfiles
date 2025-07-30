@@ -14,12 +14,10 @@ node = "22"
 pipx = "latest"
 python = "3.12"
 rust = "latest"
+terraform = "latest"
 uv = "latest"
 "github:oraios/serena" = { version = "latest", asset_pattern = "serena_agent-*-py3-none-any.whl" }
 "npm:ccusage" = "latest"
-"npm:task-master-ai" = "latest"
-"pipx:git-smart-squash" = "latest"
-terraform = "latest"
 
 [settings]
 experimental = true
