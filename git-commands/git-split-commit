@@ -119,6 +119,7 @@ generate_default_template() {
 #   A = Added file
 #   M = Modified file  
 #   D = Deleted file
+#   T = File type changed
 #   R = Renamed file (format: R<tab>old_name<tab>new_name)
 
 COMMIT: $commit_message
@@ -225,7 +226,7 @@ while IFS= read -r line; do
     fi
     
     if [ "$in_files_section" = true ]; then
-        if [[ "$line" =~ ^([AMD][[:space:]]|R([0-9][0-9][0-9])?[[:space:]]) ]]; then
+        if [[ "$line" =~ ^([AMDT][[:space:]]|R([0-9][0-9][0-9])?[[:space:]]) ]]; then
             planned_files+="$line"$'\n'
             continue
         else
@@ -288,7 +289,7 @@ stage_file() {
     local repo_path="$(git rev-parse --show-toplevel)"
     
     case "$status" in
-        A|M)
+        A|M|T)
             (cd $repo_path && git add $filename)
             ;;
         D)
@@ -387,7 +388,7 @@ while IFS= read -r line; do
     fi
 
     if [ "$in_files_section" = true ]; then
-        if [[ "$line" =~ ^([AMD][[:space:]]|R([0-9][0-9][0-9])?[[:space:]]) ]]; then
+        if [[ "$line" =~ ^([AMDT][[:space:]]|R([0-9][0-9][0-9])?[[:space:]]) ]]; then
             current_files+=("$line")
             continue
         fi
