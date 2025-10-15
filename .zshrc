@@ -18,9 +18,6 @@ ZSH_ENV_PATH="$PACKAGE_ROOT/zsh-env"
 ZSH_PLUGINS_PATH="$PACKAGE_ROOT/zsh-plugins"
 ZSH_COMPLETIONS_PATH="$PACKAGE_ROOT/zsh-completions"
 
-# Initialize bash environment
-source "$PACKAGE_ROOT/.bashrc"
-
 # Initialize zsh shell environment variables
 for config in "$ZSH_ENV_PATH"/*.env(D); do
     [[ -f "$config" ]] && export $(cat "$config" | xargs)
