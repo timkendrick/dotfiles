@@ -1,4 +1,5 @@
 [tools]
+jj = "latest"
 node = "22"
 pipx = "latest"
 python = "3.12"
