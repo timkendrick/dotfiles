@@ -1,6 +1,7 @@
 [tools]
 helm = "latest"
 jj = "latest"
+kubectl = "latest"
 node = "22"
 pipx = "latest"
 python = "3.12"
