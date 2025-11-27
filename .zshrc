@@ -17,6 +17,7 @@ PACKAGE_ROOT="${0:a:h}"
 ZSH_ENV_PATH="$PACKAGE_ROOT/zsh-env"
 ZSH_PLUGINS_PATH="$PACKAGE_ROOT/zsh-plugins"
 ZSH_COMPLETIONS_PATH="$PACKAGE_ROOT/zsh-completions"
+ZSH_SYNTAX_HIGHLIGHTING_PATH="$PACKAGE_ROOT/zsh-syntax-highlighting"
 
 # Initialize zsh shell environment variables
 for config in "$ZSH_ENV_PATH"/*.env(D); do
@@ -31,5 +32,10 @@ autoload -Uz compinit && compinit
 
 # Load shell plugins
 for plugin in "$ZSH_PLUGINS_PATH"/*.zsh(D); do
+    source "$plugin"
+done
+
+# Enable custom syntax highlighting
+for plugin in "$ZSH_SYNTAX_HIGHLIGHTING_PATH"/*.zsh(D); do
     source "$plugin"
 done
