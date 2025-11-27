@@ -1,4 +1,5 @@
 [tools]
+helm = "latest"
 jj = "latest"
 node = "22"
 pipx = "latest"
