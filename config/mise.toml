@@ -1,5 +1,6 @@
 [tools]
 awscli = "latest"
+dotnet = "latest"
 fzf = "latest"
 go = "latest"
 helm = "latest"
