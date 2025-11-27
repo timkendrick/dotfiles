@@ -1,4 +1,5 @@
 [tools]
+ast-grep = "latest"
 awscli = "latest"
 dotnet = "latest"
 fzf = "latest"
