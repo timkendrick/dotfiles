@@ -19,6 +19,7 @@ uv = "latest"
 "npm:ccusage" = "latest"
 "npm:task-master-ai" = "latest"
 "pipx:git-smart-squash" = "latest"
+terraform = "latest"
 
 [settings]
 experimental = true
