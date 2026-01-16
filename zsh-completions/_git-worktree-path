@@ -1,0 +1,25 @@
+#compdef git-worktree-path
+#description get the git worktree path for a given branch
+
+_git-worktree-path() {
+    local branches
+    
+    # Extract branch names from git worktree list --porcelain output
+    # Format: branch refs/heads/<branch-name> (or "detached" for detached HEAD)
+    branches=($(git worktree list --porcelain 2>/dev/null | \
+        grep '^branch ' | \
+        sed 's/^branch //' | \
+        grep -v '^detached$' | \
+        sed 's|^refs/heads/||')) || branches=()
+    
+    if [[ -z $branches ]]; then
+        return
+    fi
+    
+    _arguments \
+        '(- :)--help[Show usage information]' \
+        '(- :)--h[Show usage information]' \
+        ':branch name:_values "Branch" ${branches[@]}'
+}
+
+_git-worktree-path "$@"

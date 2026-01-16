@@ -1,0 +1,100 @@
+#!/bin/bash
+set -euo pipefail
+
+# Get the git worktree path for a given branch
+# Usage: git-worktree-path <branch-name>
+
+usage() {
+    local command="$(basename "$0")"
+    echo "Usage: $command <branch-name>"
+    echo ""
+    echo "Get the git worktree path for the provided branch."
+    echo "The branch name can be specified with or without the 'refs/heads/' prefix."
+    echo ""
+    echo "Examples:"
+    echo "  $command main"
+    echo "  $command my-branch"
+    echo "  $command refs/heads/my-branch"
+}
+
+# Colors for output
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Logging functions (output to stderr)
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1" >&2
+}
+
+# Check arguments
+if [[ $# -eq 0 ]]; then
+    usage
+    exit 1
+fi
+
+# If the --help argument was passed, print the usage instructions
+if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+    usage
+    exit 0
+fi
+
+# Get branch name argument
+BRANCH_INPUT="$1"
+
+# Normalize branch name: if it doesn't start with refs/heads/, add it
+# This allows matching against the porcelain output format
+if [[ "$BRANCH_INPUT" == refs/heads/* ]]; then
+    BRANCH_TO_MATCH="$BRANCH_INPUT"
+else
+    BRANCH_TO_MATCH="refs/heads/$BRANCH_INPUT"
+fi
+
+# Parse git worktree list --porcelain output
+# Format is:
+# worktree <path>
+# HEAD <commit>
+# branch refs/heads/<branch>  (or "detached" for detached HEAD)
+# (blank line between worktrees)
+
+CURRENT_WORKTREE=""
+FOUND_WORKTREE=""
+MATCH_COUNT=0
+
+while IFS= read -r line; do
+    # Check if this is a worktree path line
+    if [[ "$line" == worktree* ]]; then
+        # Extract the path (everything after "worktree ")
+        CURRENT_WORKTREE="${line#worktree }"
+    # Check if this is a branch line
+    elif [[ "$line" == branch* ]]; then
+        # Extract the branch ref (everything after "branch ")
+        BRANCH_REF="${line#branch }"
+        
+        # Skip detached worktrees
+        if [[ "$BRANCH_REF" == "detached" ]]; then
+            CURRENT_WORKTREE=""
+            continue
+        fi
+        
+        # Match against the normalized branch name
+        if [[ "$BRANCH_REF" == "$BRANCH_TO_MATCH" ]]; then
+            if [[ -n "$CURRENT_WORKTREE" ]]; then
+                FOUND_WORKTREE="$CURRENT_WORKTREE"
+                MATCH_COUNT=$((MATCH_COUNT + 1))
+            fi
+        fi
+    fi
+done < <(git worktree list --porcelain)
+
+# Handle results
+if [[ $MATCH_COUNT -eq 0 ]]; then
+    log_error "Branch '$BRANCH_INPUT' not found in any worktree"
+    exit 1
+elif [[ $MATCH_COUNT -gt 1 ]]; then
+    log_error "Multiple worktrees found for branch '$BRANCH_INPUT' (unexpected)"
+    exit 1
+else
+    # Output the path to stdout
+    echo "$FOUND_WORKTREE"
+    exit 0
+fi
