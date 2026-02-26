@@ -1,0 +1,53 @@
+(version 1)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; macOS Sandbox Configuration Template
+;; Reference: sandbox-exec(1)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Default Denial
+(allow default)
+
+;; Allow read access to all files by default
+(allow file-read*)
+
+;; Deny write access to all files by default
+(deny file-write*)
+
+;; Allow write access to system devices
+(allow file-write* 
+       (literal "/dev/null")
+       (literal "/dev/zero")
+       (literal "/dev/stdout")
+       (literal "/dev/stderr")
+       (literal "/dev/tty")
+       (regex #"^/dev/ttys[0-9]*")
+       (literal "/dev/dtracehelper"))
+
+;; Full Network access
+(allow network*)
+
+;; Execution and Process management
+(allow process-exec*)
+(allow process-fork)
+(allow signal (target same-sandbox))
+
+;; System Services (Mach)
+(allow mach-lookup)
+(allow sysctl-read)
+
+;; IPC and Shared Memory
+(allow ipc-posix*)
+
+;; Deny read access to sensitive files
+(deny file-read*
+       (subpath "~/.aws")
+       (subpath "~/.kube")
+       (subpath "~/.ssh")
+       (regex #"\.(crt|csr|env|key|pem)$"))
+
+;; Allow write access to temporary directories
+(allow file-write* 
+       (subpath "/tmp")
+       (subpath "/private/tmp")
+       (subpath "/private/var/tmp"))
