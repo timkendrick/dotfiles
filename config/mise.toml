@@ -1,7 +1,7 @@
 [tools]
 argo = "latest"
 ast-grep = "latest"
-awscli = "latest"
+awscli = { version = "latest", symlink_bins = "true" }
 claude = "latest"
 dotnet = "latest"
 fzf = "latest"
