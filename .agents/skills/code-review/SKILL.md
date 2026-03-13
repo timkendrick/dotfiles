@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Analyze implementation details and identify potential issues
+description: Analyze implementation details and identify potential issues. Always use before completing any non-trivial implementation task.
 ---
 
 # Overview
@@ -26,6 +26,7 @@ This step will help you identify whether the implementation details align with t
 Build a full understanding of the change before diving into small details. Consider the following questions:
 
 - Does the code achieve the high-level goal?
+- Have any relevant high-level tests been written to ensure the code achieves these goals?
 - Is there a simpler way to implement the same functionality?
 - Is there a more elegant way to implement the same functionality?
 - Is the code modular, reusable and maintainable, or is it tightly coupled and specific to a single use case?
@@ -73,4 +74,4 @@ Once each issue has been discussed, capture the outcome of the discussion by upd
 
 Compile the user's answers into a clear action plan for how to address each issue, including any necessary refactoring or additional testing.
 
-Present the user with the action plan and ask for feedback on the plan, offering to save it to a file in @.agents/plans once the user is satisfied with the details.
+Present the user with the action plan and ask for feedback on the plan, offering to save it to a file in `.agents/plans` once the user is satisfied with the details.
