@@ -20,6 +20,7 @@ The plan should not contain any hand-waved sections left to the reader's interpr
    - Other useful context uncovered during research
    - A transcript of any questions and responses presented to the user
    - A decision log containing key decisions
+   - A task list containing GFM checkboxes for each discrete step of the implementation, which can be checked off as the steps are completed during implementation
 3. **Present** – Show the user a summary of the key details, and the path to the saved plan, and **await user feedback**.
 4. **Iterate** – If the user provides feedback (either by updating the plan file or by providing additional input), update the plan file to address it and await confirmation. Repeat until the user is happy.
 
