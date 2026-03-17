@@ -1,7 +1,6 @@
 {
   "packages": [
     "npm:@pborck/pi-de",
-    "npm:@plannotator/pi-extension",
     "npm:@tmustier/pi-usage-extension",
     "npm:lsp-pi",
     "npm:pi-ask-tool-extension",
