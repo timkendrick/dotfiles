@@ -28,8 +28,9 @@ Whenever the user asks you to research a topic, don't make educated guesses; alw
 
 Before making any change, no matter how minor, always create a new VCS commit. Similarly, whenever you make any incremental progress, no matter how small, create a new commit.
 
-## CLI tool conventions
+## Tool calling
 
-- Always use `rg` instead of `grep`
+- Always use the `context7` tools for external library API reference
+- Always use the `grep` tool for searching within files (as opposed to the `grep` CLI command)
 
 ---
