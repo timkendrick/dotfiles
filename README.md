@@ -2,11 +2,12 @@
 
 ## Installation
 
-Clone the repository to your `.config` directory:
+Clone the repository to your `.config` directory and initialize submodules:
 
 ```bash
 mkdir -p ~/.config
-git clone https://github.com/timkendrick/dotfiles.git ~/.config/dotfiles
+git clone https://github.com/timkendrick/dotfiles.git ~/.config/dotfiles && cd ~/.config/dotfiles
+git submodule update --init
 ```
 
 Load `.bashrc` / `.zshrc` configuration:
