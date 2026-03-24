@@ -2,6 +2,7 @@
   "packages": [
     "npm:@tmustier/pi-usage-extension",
     "npm:lsp-pi",
+    "npm:pi-ask-tool-extension",
     "npm:pi-mcp-adapter",
     "npm:pi-md-export",
     "npm:pi-powerline-footer",
@@ -21,5 +22,5 @@
     "anthropic/claude-opus-4-6",
     "github-copilot/gemini-3-flash-preview"
   ],
-  "lastChangelogVersion": "0.61.0"
+  "lastChangelogVersion": "0.62.0"
 }
