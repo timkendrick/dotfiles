@@ -37,6 +37,7 @@ watchexec = "latest"
 "npm:pi-subagents" = "latest"
 "npm:pi-web-providers" = "latest"
 "npm:jscpd" = "latest"
+"npm:@biomejs/biome" = "latest"
 
 [settings]
 experimental = true
