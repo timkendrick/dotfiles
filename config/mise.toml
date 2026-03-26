@@ -36,6 +36,7 @@ watchexec = "latest"
 "npm:pi-skill-palette" = "latest"
 "npm:pi-subagents" = "latest"
 "npm:pi-web-providers" = "latest"
+"npm:jscpd" = "latest"
 
 [settings]
 experimental = true
