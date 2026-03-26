@@ -1,1 +1,1 @@
-source <(colima completion zsh)
+load_completions colima 'colima completion zsh'

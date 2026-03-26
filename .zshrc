@@ -46,6 +46,22 @@ load_module() {
     fi
 }
 
+# Helper: register a lazy-loaded completion for a command.
+# On first Tab press, runs <gen> to install the real completion function.
+load_completions() {
+    local cmd="$1" gen="$2"
+    if [[ -n "$DOTFILES_DEBUG" ]]; then
+        echo "[dotfiles] registering completions for ${cmd}…" >&2
+    fi
+    eval "__lazy_${cmd}() {
+        unfunction __lazy_${cmd}
+        source <(${gen})
+        compdef \${_comps[${cmd}]} ${cmd}
+        \${_comps[${cmd}]} \"\$@\"
+    }"
+    compdef "__lazy_${cmd}" "${cmd}"
+}
+
 # Helper: load a .env file, logging to stderr if DOTFILES_DEBUG is set
 load_env() {
     local file="$1"
@@ -65,7 +81,12 @@ FPATH="$ZSH_COMPLETIONS_PATH:$FPATH"
 
 # Activate shell completions
 autoload bashcompinit && bashcompinit
-autoload -Uz compinit && compinit
+autoload -Uz compinit
+if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
+    compinit
+else
+    compinit -C
+fi
 
 # Load shell plugins
 for plugin in "$ZSH_PLUGINS_PATH"/*.zsh(ND); do

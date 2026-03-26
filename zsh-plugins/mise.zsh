@@ -1,4 +1,4 @@
-source <(mise completion zsh)
+load_completions mise 'mise completion zsh'
 
 mise-link-global-npm-packages() {
   # Read list of packages from arguments, defaulting to reading from mise directory if no arguments are provided

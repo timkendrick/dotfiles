@@ -1,3 +1,3 @@
 . "$HOME/.cargo/env"
 
-source <(CARGO_COMPLETE=zsh cargo +nightly)
+load_completions cargo 'CARGO_COMPLETE=zsh cargo +nightly'
