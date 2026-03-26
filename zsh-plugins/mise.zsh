@@ -23,3 +23,16 @@ mise-link-global-npm-packages() {
     fi
   done
 }
+
+mise-unlink-global-npm-package() {
+  local pkg="$1"
+  local pkg_name="$(<<< "$pkg" sed 's/^npm://')"
+  local lib_path="$(mise where node)/lib/node_modules/$pkg_name"
+  echo "Unlinking $lib_path..."
+  if [ -L "$lib_path" ]; then
+    rm "$lib_path"
+    echo "Unlinked: $pkg"
+  else
+    echo "Not linked: $pkg"
+  fi
+}
