@@ -68,7 +68,9 @@ load_env() {
     if [[ -n "$DOTFILES_DEBUG" ]]; then
         echo "[dotfiles] sourcing ${file:t}…" >&2
     fi
-    export $(cat "$file" | xargs)
+    local vars                                                                                                                                   
+    vars=$(< "$file" grep -v '#' | xargs)                                                                                                        
+    [[ -n "$vars" ]] && export ${(z)vars}  
 }
 
 # Initialize zsh shell environment variables
