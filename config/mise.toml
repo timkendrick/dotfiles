@@ -38,6 +38,7 @@ watchexec = "latest"
 "npm:pi-web-providers" = "latest"
 "npm:jscpd" = "latest"
 "npm:@biomejs/biome" = "latest"
+"npm:knip" = "latest"
 
 [settings]
 experimental = true
