@@ -9,7 +9,7 @@
     "npm:pi-rewind-hook",
     "npm:pi-skill-palette",
     "npm:pi-subagents",
-    "npm:pi-web-access"
+    "npm:pi-web-providers"
   ],
   "doubleEscapeAction": "tree",
   "defaultProvider": "anthropic",
