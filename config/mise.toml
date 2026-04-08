@@ -2,6 +2,7 @@
 argo = "latest"
 ast-grep = "latest"
 awscli = { version = "latest", symlink_bins = "true" }
+claude-code = "latest"
 dotnet = "latest"
 duckdb = "latest"
 fzf = "latest"

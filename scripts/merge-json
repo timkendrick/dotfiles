@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Merge the JSON provided via stdin into an existing JSON file.
+# When dry-run is enabled, only print the resulting merged JSON without writing to the file.
+# Usage: merge-json [--dry-run] <target>
+set -euo pipefail
+
+usage() {
+  echo "Usage: $(basename "$0") [--dry-run] <target>"
+}
+
+dry_run=false
+target_path=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) dry_run=true; shift ;;
+    -*) echo "Unknown option: $1" >&2; exit 1 ;;
+    *)
+      if [ -n "$target_path" ]; then
+        usage >&2
+        exit 1
+      fi
+      target_path="$1";
+      shift ;;
+  esac
+done
+
+if [ -z "$target_path" ]; then
+  usage >&2
+  exit 1
+fi
+
+# Merge the JSON from stdin into the target file via jq
+merged_json=$(jq -s '.[0] * .[1]' "$target_path" -)
+if [ "$dry_run" = true ]; then
+  echo "$merged_json"
+else
+  echo "$merged_json" > "$target_path"
+fi

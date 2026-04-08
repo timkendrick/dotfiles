@@ -28,6 +28,13 @@ ln -s ~/.config/dotfiles/vim-plugins ~/.vim/pack/dotfiles
 Register `pi` agent configuration:
 
 ```bash
-scripts/link-config-dir config/.pi/agent ~/.pi/agent
 scripts/link-config-dir .agents ~/.pi/agent
+scripts/link-config-dir config/.pi/agent ~/.pi/agent
+```
+
+Register `claude` agent configuration:
+
+```bash
+scripts/link-config-dir .agents ~/.claude
+scripts/merge-json ~/.claude.json < config/.claude/mcp.json
 ```
