@@ -1,5 +1,5 @@
 ---
-name: plan
+name: planning
 description: Produces comprehensive self-contained implementation plans. Always use before implementing any non-trivial changes.
 ---
 # Plan
