@@ -1,29 +1,46 @@
 #!/usr/bin/env bash
 # Recursively symlink all files from a source directory into a target directory.
-# Usage: link-config-dir [--dry-run] <source> <target>
+# Usage: link-config-dir <source> <target> [--dry-run] [--rename <pattern>] ...
 set -euo pipefail
 
 usage() {
-  echo "Usage: $(basename "$0") [--dry-run] <source> <target>"
+  cat <<EOF
+Usage: link-config-dir <source> <target> [--dry-run] [--rename <pattern>] ...
+
+Recursively symlink all files from <source> into <target>, preserving directory structure.
+
+Options:
+  --dry-run              Print actions without executing them
+  --rename <pattern>     Apply a regex substitution to change the basenames of output paths.
+                         Example: 's/^path\/to\/oldname$/newname/'
+                         These replacements apply to both files and directories, however they do not
+                         change the overall directory tree shape, just the filenames.
+                         Note that the pattern matches against the file path relative to <source>,
+                         whereas the replacement specifies just the basename of the output path.
+                         If multiple rename patterns are specified, the first matching pattern wins.
+EOF
 }
 
 dry_run=false
+rename_exprs=()
+args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) dry_run=true; shift ;;
-    --) shift; break ;;
+    --rename) rename_exprs+=("$2"); shift 2 ;;
+    --) shift; args+=("$@"); break ;;
     -*) echo "Unknown option: $1" >&2; exit 1 ;;
-    *) break ;;
+    *) args+=("$1"); shift ;;
   esac
 done
 
-if [[ $# -ne 2 ]]; then
+if [[ ${#args[@]} -ne 2 ]]; then
   usage >&2
   exit 1
 fi
 
-src="$1"
-dst="$2"
+src="${args[0]%/}"
+dst="${args[1]}"
 
 # Run a command, printing it first
 # If the dry_run environment variable is true, only print the command without executing it.
@@ -44,10 +61,28 @@ while [ ${#stack[@]} -gt 0 ]; do
   run mkdir -p "$d"
   for file in "$s"/*; do
     if [ -d "$file" ] && [ ! -L "$file" ]; then
-      stack+=("$file:$d/$(basename "$file")")
+      dir_rel_path="${file#"$src/"}"
+      dir_name="$(basename "$file")"
+      for expr in ${rename_exprs[@]+"${rename_exprs[@]}"}; do
+        new_name="$(echo "$dir_rel_path" | sed -e "$expr")"
+        if [[ "$new_name" != "$dir_rel_path" ]]; then
+          dir_name="$new_name"
+          break
+        fi
+      done
+      stack+=("$file:$d/$dir_name")
     else
       target="$(realpath "$file")"
-      link="$d/$(basename "$file")"
+      name="$(basename "$file")"
+      rel_path="${file#"$src/"}"
+      for expr in ${rename_exprs[@]+"${rename_exprs[@]}"}; do
+        new_name="$(echo "$rel_path" | sed -e "$expr")"
+        if [[ "$new_name" != "$rel_path" ]]; then
+          name="$new_name"
+          break
+        fi
+      done
+      link="$d/$name"
       # If the link already exists and points to the correct target,
       # skip the link operation by running the command in dry_run mode
       already_linked=false
