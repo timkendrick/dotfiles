@@ -1,6 +1,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; macOS Sandbox Configuration Template
 ;; Reference: sandbox-exec(1)
+;;
+;; Required profile parameters (provided via `-D key=value`):
+;; - HOME - User's home directory: `$(realpath "$HOME")`
+;; - TMPDIR - Temp directory: `$(realpath "$TMPDIR")`
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (version 1)
@@ -15,32 +19,52 @@
 (deny file-write*)
 
 ;; Allow write access to system devices
-(allow file-write* 
-       (literal "/dev/null")
-       (literal "/dev/zero")
-       (literal "/dev/stdout")
-       (literal "/dev/stderr")
-       (literal "/dev/tty")
-       (regex #"^/dev/ttys[0-9]*")
-       (literal "/dev/dtracehelper"))
-
-;; Full Network access
-(allow network*)
+(allow file-ioctl file-write* 
+  (literal "/dev/dtracehelper")
+  (literal "/dev/null")
+  (literal "/dev/ptmx")
+  (literal "/dev/random")
+  (literal "/dev/stderr")
+  (literal "/dev/stdout")
+  (literal "/dev/tty")
+  (literal "/dev/urandom")
+  (literal "/dev/zero")
+  (regex #"^/dev/pts/.*")
+  (regex #"^/dev/pty[p-za-e][0-9a-f]+")
+  (regex #"^/dev/tty[p-za-e][0-9]+"))
+(allow pseudo-tty)
 
 ;; Execution and Process management
 (allow process-exec*)
 (allow process-fork)
+(allow process-info* (target same-sandbox))
 (allow signal (target same-sandbox))
+(allow mach-priv-task-port (target same-sandbox))
+
+;; IPC and Shared Memory
+(allow ipc-posix*)
 
 ;; System Services (Mach)
 (allow mach-lookup)
 (allow sysctl-read)
 
-;; IPC and Shared Memory
-(allow ipc-posix*)
+;; System preferences
+(allow user-preference-read)
 
-;; Allow write access to temporary directories
-(allow file-write* 
-       (subpath "/tmp")
-       (subpath "/private/tmp")
-       (subpath "/private/var/tmp"))
+;; Full network access
+(allow network*)
+
+;; Allow read/write access to temporary directories
+(allow file-read* file-write* 
+  (subpath "/tmp")
+  (subpath "/private/tmp")
+  (subpath "/private/var/tmp")
+  (subpath (param "TMPDIR")))
+
+;; Deny reading files within the user's home directory
+;; (allow stat/lstat on directories so that realpath() can traverse path components)
+(deny file-read* (subpath (param "HOME")))
+(allow file-read-metadata (require-all (subpath (param "HOME")) (vnode-type DIRECTORY)))
+
+;; Allow read/write access to the user's cache directory
+(allow file-read* file-write* (literal (string-append (param "HOME") "/Library/Caches")))

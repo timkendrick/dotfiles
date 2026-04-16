@@ -449,57 +449,50 @@ SANDBOXIGNORE_FILE="$(pwd)/.sandboxignore"
 profile_source=$(
     cat "$CONFIG_TEMPLATE"
     echo ""
-    echo ";; Allow read access to PATH directories so executables can be found"
+    echo ";; Allow read access to PATH directories for locating executables"
     IFS=: read -ra path_dirs <<< "$PATH"
     for path_dir in "${path_dirs[@]}"; do
         # Resolve relative entries against CWD
         [[ "$path_dir" != /* ]] && path_dir="$(pwd)/$path_dir"
         echo "(allow file-read* (subpath \"$path_dir\"))"
     done
-    echo ""
-    echo ";; Allow writing to the user's temp directories"
-    echo "(allow file-write* (subpath \"$(readlink -f "$TMPDIR")\"))"
-    echo "(allow file-write* (subpath \"$(readlink -f "$HOME/Library/Caches")\"))"
-    echo ""
     if [[ -f "$SANDBOXIGNORE_FILE" ]]; then
+        echo ""
         echo ";; --- IGNORE RULES ---"
         emit_sandboxignore_rules "$SANDBOXIGNORE_FILE" "$(pwd)"
         echo ";; --- END OF IGNORE RULES ---"
         echo ""
     fi
     echo ""
-    echo ";; Deny reading file contents within the user's home directory (metadata is still allowed)"
-    echo "(deny file-read-data (subpath \"$HOME\"))"
-    echo ""
     echo ";; --- DYNAMIC RULES ---"
     if [[ ${#READONLY_LITERAL_PATHS[@]} -gt 0 ]]; then
         for path in "${READONLY_LITERAL_PATHS[@]}"; do
-            echo "(allow file-read-data (literal \"$path\"))"
+            echo "(allow file-read* (literal \"$path\"))"
         done
     fi
     if [[ ${#READONLY_PATHS[@]} -gt 0 ]]; then
         for dir in "${READONLY_PATHS[@]}"; do
-            echo "(allow file-read-data (subpath \"$dir\"))"
+            echo "(allow file-read* (subpath \"$dir\"))"
         done
     fi
     if [[ ${#READONLY_PATTERNS[@]} -gt 0 ]]; then
         for pattern in "${READONLY_PATTERNS[@]}"; do
-            echo "(allow file-read-data (regex #\"$pattern\"))"
+            echo "(allow file-read* (regex #\"$pattern\"))"
         done
     fi
     if [[ ${#LITERAL_PATHS[@]} -gt 0 ]]; then
         for path in "${LITERAL_PATHS[@]}"; do
-            echo "(allow file-read-data file-write* (literal \"$path\"))"
+            echo "(allow file-read* file-write* (literal \"$path\"))"
         done
     fi
     if [[ ${#PATHS[@]} -gt 0 ]]; then
         for dir in "${PATHS[@]}"; do
-            echo "(allow file-read-data file-write* (subpath \"$dir\"))"
+            echo "(allow file-read* file-write* (subpath \"$dir\"))"
         done
     fi
     if [[ ${#PATTERNS[@]} -gt 0 ]]; then
         for pattern in "${PATTERNS[@]}"; do
-            echo "(allow file-read-data file-write* (regex #\"$pattern\"))"
+            echo "(allow file-read* file-write* (regex #\"$pattern\"))"
         done
     fi
     echo ";; --- END OF DYNAMIC RULES ---"
@@ -511,4 +504,4 @@ if [[ -n "${SANDBOX_DEBUG-}" ]]; then
 fi
 
 # Execute the command in the sandbox environment
-exec sandbox-exec -p "$profile_source" "${COMMAND_ARGS[@]}"
+exec sandbox-exec -p "$profile_source" -D HOME="$(realpath "$HOME")" -D TMPDIR="$(realpath "$TMPDIR")" "${COMMAND_ARGS[@]}"
