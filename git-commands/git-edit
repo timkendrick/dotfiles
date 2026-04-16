@@ -1,0 +1,547 @@
+#!/bin/bash
+set -euo pipefail
+
+usage() {
+    local command="$(basename "$0")"
+    echo "Usage: $command [--force] --fixup <base-commit> [<fixup-commit>]"
+    echo "       $command [--force] --amend <base-commit>"
+    echo "       $command [--force] --pick <base-commit> [<pick-commit>]"
+    echo "       $command [--force] --drop <commit-to-drop>"
+    echo "       $command [--force] --swap <commit1> [<commit2>]"
+    echo ""
+    echo "Edit commit history via interactive rebase."
+    echo "Updates all branch references that would be affected by the rebase."
+    echo ""
+    echo "Modes:"
+    echo "  $command --fixup <base-commit>                Create fixup commit from staged changes"
+    echo "  $command --fixup <base-commit> <fixup-commit> Apply an existing fixup commit"
+    echo "  $command --amend <base-commit>                Create amend fixup from staged changes"
+    echo "  $command --pick <base-commit>                 Create commit from staged changes and reorder"
+    echo "  $command --pick <base-commit> <pick-commit>   Reorder an existing commit"
+    echo "  $command --drop <commit>                      Drop a commit from the history"
+    echo "  $command --swap <commit1>                     Create commit from staged changes and swap with commit1"
+    echo "  $command --swap <commit1> <commit2>           Swap the positions of two commits"
+    echo ""
+    echo "When creating a commit from staged changes:"
+    echo "  - Staged changes are required"
+    echo "  - A commit will be created and then applied"
+    echo ""
+    echo "When applying an existing commit:"
+    echo "  - No staged changes are allowed" 
+    echo "  - In pick mode, the commit is reordered after the base commit"
+    echo "  - Supports both regular fixup commits and amend fixup commits:"
+    echo "    - Regular fixup: git commit --fixup=<commit>"
+    echo "    - Amend fixup:   git commit --fixup=amend:<commit>"
+    echo ""
+    echo "Options:"
+    echo "  --force                   Allow rebase even if merge commits exist in the range"
+    echo "                            (merges will be linearized)"
+    echo "  --fixup                   Squash changes into the base commit"
+    echo "  --amend                   Create an amend fixup commit that updates the commit message"
+    echo "                            (only valid when creating fixup from staged changes)"
+    echo "  --pick                    Reorder the commit to be placed after the base commit"
+    echo "  --drop                    Drop the specified commit from the history"
+    echo "  --swap                    Swap the positions of two commits in the history"
+    echo ""
+    echo "Note: Exactly one of --fixup, --amend, --pick, --drop, or --swap must be specified."
+}
+
+# If no arguments were passed, print the usage instructions
+if [[ $# -eq 0 ]]; then
+    usage
+    exit 1
+fi
+
+# If the --help argument was passed, print the usage instructions
+if [[ "$1" == "--help" ]]; then
+    usage
+    exit 0
+fi
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+log() {
+    echo -e "$1" >&2
+}
+
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1" >&2
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1" >&2
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1" >&2
+}
+
+# Parse optional flags
+ALLOW_MERGE_OVERWRITE=false
+OPERATION_TYPE=""
+while [[ $# -gt 0 ]] && [[ "$1" == --* ]]; do
+    case "$1" in
+        --force)
+            ALLOW_MERGE_OVERWRITE=true
+            shift
+            ;;
+        --fixup)
+            if [[ -n "$OPERATION_TYPE" ]]; then
+                log_error "The --fixup flag cannot be combined with --$OPERATION_TYPE"
+                exit 1
+            fi
+            OPERATION_TYPE="fixup"
+            shift
+            ;;
+        --amend)
+            if [[ -n "$OPERATION_TYPE" ]]; then
+                log_error "The --amend flag cannot be combined with --$OPERATION_TYPE"
+                exit 1
+            fi
+            OPERATION_TYPE="amend"
+            shift
+            ;;
+        --pick)
+            if [[ -n "$OPERATION_TYPE" ]]; then
+                log_error "The --pick flag cannot be combined with --$OPERATION_TYPE"
+                exit 1
+            fi
+            OPERATION_TYPE="pick"
+            shift
+            ;;
+        --drop)
+            if [[ -n "$OPERATION_TYPE" ]]; then
+                log_error "The --drop flag cannot be combined with --$OPERATION_TYPE"
+                exit 1
+            fi
+            OPERATION_TYPE="drop"
+            shift
+            ;;
+        --swap)
+            if [[ -n "$OPERATION_TYPE" ]]; then
+                log_error "The --swap flag cannot be combined with --$OPERATION_TYPE"
+                exit 1
+            fi
+            OPERATION_TYPE="swap"
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+# Validate that exactly one operation mode was specified
+if [[ -z "$OPERATION_TYPE" ]]; then
+    log_error "You must specify exactly one of: --fixup, --amend, --pick, --swap, or --drop"
+    usage
+    exit 1
+fi
+
+# Validate correct number of arguments after parsing flags
+if [[ "$OPERATION_TYPE" == "drop" ]]; then
+    # Drop mode requires exactly 1 argument
+    if [[ $# -ne 1 ]]; then
+        log_error "The --drop flag requires exactly one commit argument"
+        usage
+        exit 1
+    fi
+elif [[ $# -ne 1 && $# -ne 2 ]]; then
+    usage
+    exit 1
+fi
+
+# Get the first required commit argument, and the second optional commit argument
+COMMIT_1="$1"
+COMMIT_2="${2:-}"
+
+# Determine commits based on operation type
+if [[ "$OPERATION_TYPE" == "drop" ]]; then
+    # In drop mode, the argument is the commit to drop
+    FIXUP_COMMIT="$(git rev-parse "$COMMIT_1")"
+    # Base commit is the parent of the commit to drop
+    BASE_COMMIT="$(git rev-parse "$FIXUP_COMMIT^")"
+elif [[ "$OPERATION_TYPE" == "swap" ]]; then
+    # In swap mode, determine which commit comes first
+    if [[ -n "$COMMIT_2" ]]; then
+        # Two commits provided - determine which comes first
+        RESOLVED_1="$(git rev-parse "$COMMIT_1")"
+        RESOLVED_2="$(git rev-parse "$COMMIT_2")"
+        
+        # Check which commit is the ancestor (comes first)
+        if git merge-base --is-ancestor "$RESOLVED_1" "$RESOLVED_2"; then
+            # COMMIT_1 is earlier
+            BASE_COMMIT="$RESOLVED_1"
+            FIXUP_COMMIT="$RESOLVED_2"
+        elif git merge-base --is-ancestor "$RESOLVED_2" "$RESOLVED_1"; then
+            # COMMIT_2 is earlier
+            BASE_COMMIT="$RESOLVED_2"
+            FIXUP_COMMIT="$RESOLVED_1"
+        else
+            log_error "$COMMIT_1 and $COMMIT_2 are not in the same history"
+            exit 1
+        fi
+    else
+        # One commit provided - it becomes the base, new commit will be the fixup
+        BASE_COMMIT="$(git rev-parse "$COMMIT_1")"
+        # FIXUP_COMMIT will be set later when we create the new commit
+    fi
+else
+    # Normal mode: base commit is first argument
+    BASE_COMMIT="$(git rev-parse "$COMMIT_1")"
+    # If 2 arguments were passed, the second one is the fixup commit,
+    # so resolve it to a commit hash.
+    # If no second argument was provided, this will be empty.
+    FIXUP_COMMIT="${COMMIT_2:+$(git rev-parse "$COMMIT_2")}"
+fi
+
+# Validate base commit exists
+if ! git rev-parse --verify "$BASE_COMMIT" >/dev/null 2>&1; then
+    log_error "Invalid base commit: $BASE_COMMIT"
+    exit 1
+fi
+
+# Ensure base commit is an ancestor of current HEAD
+if ! git merge-base --is-ancestor "$BASE_COMMIT" HEAD; then
+    log_error "The base commit $BASE_COMMIT is not an ancestor of the current HEAD."
+    exit 1
+fi
+
+# Ensure we're on a named branch (not detached HEAD)
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [[ "$CURRENT_BRANCH" == "HEAD" ]]; then
+    log_error "Not on a named branch. Please checkout a branch first."
+    exit 1
+fi
+
+# Create a new fixup commit if none was provided
+if [[ -z "$FIXUP_COMMIT" ]] && [[ "$OPERATION_TYPE" != "drop" ]]; then
+    # 1-arg mode: Create commit from staged changes
+    # Ensure we have changes staged and ready to commit (unless creating amend fixup)
+    if [[ "$OPERATION_TYPE" != "amend" ]] && git diff --cached --quiet; then
+        log_warn "No staged changes found. Please stage the changes you want to apply."
+        exit 0
+    fi
+    # Ensure no additional unstaged changes in the working tree
+    if ! git diff --quiet; then
+        log_error "Working directory has unstaged changes. Please stage or stash them."
+        exit 1
+    fi
+    log_info "Creating commit from staged changes..."
+    if [[ "$OPERATION_TYPE" == "fixup" ]]; then
+        # In fixup mode, create a fixup commit that will be applied to the base commit
+        git commit --fixup="${BASE_COMMIT}"
+    elif [[ "$OPERATION_TYPE" == "amend" ]]; then
+        # In amend mode, create a fixup commit that will be applied to the base commit
+        # (we allow empty commits in order to allow changing just the commit message)
+        git commit --allow-empty --fixup="amend:${BASE_COMMIT}"
+    else
+        # In pick or swap mode, create a regular commit
+        git commit
+    fi
+    FIXUP_COMMIT=$(git rev-parse HEAD)
+    log_info "Created ${OPERATION_TYPE} commit: $(git rev-parse --short "$FIXUP_COMMIT")"
+fi
+
+# Record the current commit hash
+HEAD_COMMIT=$(git rev-parse HEAD)
+
+# Validate fixup commit exists
+if ! git rev-parse --verify "$FIXUP_COMMIT" >/dev/null 2>&1; then
+    log_error "Invalid commit: $FIXUP_COMMIT"
+    exit 1
+fi
+
+# Ensure fixup commit is an ancestor of current HEAD
+if ! git merge-base --is-ancestor "$FIXUP_COMMIT" "$HEAD_COMMIT"; then
+    log_error "The commit $FIXUP_COMMIT is not an ancestor of the current HEAD."
+    exit 1
+fi
+
+# Ensure fixup commit is a descendant of base commit
+if ! git merge-base --is-ancestor "$BASE_COMMIT" "$FIXUP_COMMIT"; then
+    log_error "The commit $FIXUP_COMMIT is not a descendant of the base commit $BASE_COMMIT."
+    exit 1
+fi
+
+# Ensure working tree is completely clean (no unstaged or staged changes)
+if ! git diff-index --quiet HEAD --; then
+    log_error "Working directory has uncommitted changes. Please commit or stash them."
+    exit 1
+fi
+
+log_info "Current branch: $CURRENT_BRANCH"
+log_info "Base commit: $(git rev-parse --short "$BASE_COMMIT") $(git log -1 --format='%s' "$BASE_COMMIT")"
+log_info "$OPERATION_TYPE commit: $(git rev-parse --short "$FIXUP_COMMIT") $(git log -1 --format='%s' "$FIXUP_COMMIT")"
+
+# Check for merge commits in the range
+MERGE_COMMITS=$(git rev-list --merges "${BASE_COMMIT}..${HEAD_COMMIT}")
+if [[ -n "$MERGE_COMMITS" ]]; then
+    if [[ "$ALLOW_MERGE_OVERWRITE" != true ]]; then
+        log_error "Merge commits found in the range ${BASE_COMMIT}..HEAD"
+        log_error "Use --force to proceed (merges will be linearized)"
+        log_error "Merge commits:"
+        while IFS= read -r merge; do
+            log_error "  $(git rev-parse --short "$merge") $(git log -1 --format='%s' "$merge")"
+        done <<< "$MERGE_COMMITS"
+        exit 1
+    else
+        log_warn "Proceeding with rebase that will linearize merge commits"
+    fi
+fi
+
+# Find the depth of the fixup commit in the original sequence
+FIXUP_DEPTH=$(git rev-list --count "${BASE_COMMIT}..${FIXUP_COMMIT}")
+log_info "$OPERATION_TYPE commit depth: $FIXUP_DEPTH"
+
+# Detect if this is an amend fixup commit
+FIXUP_MESSAGE=$(git log -1 --format='%s' "$FIXUP_COMMIT")
+IS_AMEND_FIXUP=false
+if [[ "$FIXUP_MESSAGE" =~ ^amend!\ .* ]]; then
+    IS_AMEND_FIXUP=true
+    log_info "Detected amend fixup commit - will update commit message"
+fi
+
+# Track all branches and their positions relative to base commit
+log_info "Analyzing branch positions..."
+
+# Function to get all commits in range as array
+get_commits_in_range() {
+    local from="$1"
+    local to="$2"
+    git rev-list --reverse "$from..$to"
+}
+
+# Get all commits from base (inclusive) to HEAD
+# Using base^ as 'from' excludes base's parent but includes base itself
+COMMITS_IN_RANGE=($(get_commits_in_range "${BASE_COMMIT}^" "${HEAD_COMMIT}"))
+
+# For each commit, find which branches point to it
+# Use parallel arrays instead of associative arrays for compatibility
+BRANCH_NAMES=()
+BRANCH_DEPTHS=()
+for i in "${!COMMITS_IN_RANGE[@]}"; do
+    commit="${COMMITS_IN_RANGE[$i]}"
+    depth=$i
+    
+    # Find all branches pointing to this commit
+    branches=$(git for-each-ref --format='%(refname:short)' --points-at="$commit" refs/heads/)
+    
+    if [[ -n "$branches" ]]; then
+        while IFS= read -r branch; do
+            if [[ -n "$branch" ]]; then
+                BRANCH_NAMES+=("$branch")
+                BRANCH_DEPTHS+=("$depth")
+                log_info "  Branch '$branch' at depth $depth (commit $(git rev-parse --short "$commit"))"
+            fi
+        done <<< "$branches"
+    fi
+done
+
+# Create temporary branch
+TEMP_BRANCH="${CURRENT_BRANCH}-edit-$(date +%Y%m%d-%H%M%S)"
+log_info "Creating temporary branch: $TEMP_BRANCH"
+git checkout -b "$TEMP_BRANCH" >/dev/null 2>&1
+
+# Function to cleanup on exit
+cleanup() {
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        log_info "Cleaning up after error..."
+        # Abort any in-progress rebase
+        if [[ -d ".git/rebase-merge" ]] || [[ -d ".git/rebase-apply" ]]; then
+            git rebase --abort >/dev/null 2>&1 || true
+        fi
+        # Return to original branch
+        git checkout "$CURRENT_BRANCH" >/dev/null 2>&1 || true
+        # Delete temp branch
+        git branch -D "$TEMP_BRANCH" >/dev/null 2>&1 || true
+    fi
+}
+trap cleanup EXIT
+
+# Prepare rebase editor script that generates a synthetic rebase plan
+REBASE_EDITOR_SCRIPT="/tmp/git_edit_editor_$$.sh"
+cat > "$REBASE_EDITOR_SCRIPT" << EOF
+#!/bin/bash
+# This script generates a synthetic rebase todo list
+
+TODO_FILE="\$1"
+
+# Clear the default todo file
+> "\$TODO_FILE"
+
+if [[ "$OPERATION_TYPE" == "swap" ]]; then
+    # For swap mode, we swap BASE_COMMIT and FIXUP_COMMIT positions
+    # (where BASE_COMMIT is the earlier commit and FIXUP_COMMIT is the later commit)
+    
+    # 1. Add the later commit (FIXUP_COMMIT) first
+    echo "pick $FIXUP_COMMIT \$(git log -1 --format='%s' $FIXUP_COMMIT)" >> "\$TODO_FILE"
+    
+    # 2. Add all commits between BASE_COMMIT and FIXUP_COMMIT (excluding both)
+    COMMITS_BETWEEN=\$(git rev-list --reverse $BASE_COMMIT..$FIXUP_COMMIT^)
+    for commit in \$COMMITS_BETWEEN; do
+        echo "pick \$commit \$(git log -1 --format='%s' \$commit)" >> "\$TODO_FILE"
+    done
+    
+    # 3. Add the earlier commit (BASE_COMMIT)
+    echo "pick $BASE_COMMIT \$(git log -1 --format='%s' $BASE_COMMIT)" >> "\$TODO_FILE"
+    
+    # 4. Add all commits after FIXUP_COMMIT
+    COMMITS_AFTER=\$(git rev-list --reverse $FIXUP_COMMIT..$HEAD_COMMIT)
+    for commit in \$COMMITS_AFTER; do
+        echo "pick \$commit \$(git log -1 --format='%s' \$commit)" >> "\$TODO_FILE"
+    done
+else
+    # 1. First, add the base commit as pick
+    echo "pick $BASE_COMMIT \$(git log -1 --format='%s' $BASE_COMMIT)" >> "\$TODO_FILE"
+
+    # 2. Then add the fixup/pick commit (skip for drop mode)
+    if [[ "$OPERATION_TYPE" != "drop" ]]; then
+        if [[ "$OPERATION_TYPE" == "pick" ]]; then
+            # In pick mode, just add as a regular pick
+            echo "pick $FIXUP_COMMIT \$(git log -1 --format='%s' $FIXUP_COMMIT)" >> "\$TODO_FILE"
+        elif [[ "$IS_AMEND_FIXUP" == true ]]; then
+            # Use fixup -C for amend fixups to update commit message
+            echo "fixup -C $FIXUP_COMMIT \$(git log -1 --format='%s' $FIXUP_COMMIT)" >> "\$TODO_FILE"
+        else
+            # Regular fixup
+            echo "fixup $FIXUP_COMMIT \$(git log -1 --format='%s' $FIXUP_COMMIT)" >> "\$TODO_FILE"
+        fi
+    fi
+
+    # 3. Add all commits between base and fixup (excluding both)
+    # These are in reverse order (oldest first) which is what we want
+    COMMITS_BETWEEN_BASE_AND_FIXUP=\$(git rev-list --reverse $BASE_COMMIT..$FIXUP_COMMIT^)
+
+    for commit in \$COMMITS_BETWEEN_BASE_AND_FIXUP; do
+        echo "pick \$commit \$(git log -1 --format='%s' \$commit)" >> "\$TODO_FILE"
+    done
+
+    # 4. Add all commits after fixup to HEAD (excluding fixup)
+    COMMITS_AFTER_FIXUP=\$(git rev-list --reverse $FIXUP_COMMIT..$HEAD_COMMIT)
+
+    for commit in \$COMMITS_AFTER_FIXUP; do
+        echo "pick \$commit \$(git log -1 --format='%s' \$commit)" >> "\$TODO_FILE"
+    done
+fi
+EOF
+chmod +x "$REBASE_EDITOR_SCRIPT"
+
+# Perform the rebase, keeping any commits that end up empty in order to preserve the correct history offset
+log_info "Performing rebase..."
+if ! GIT_SEQUENCE_EDITOR="$REBASE_EDITOR_SCRIPT" GIT_EDITOR=true git rebase -i --empty=keep "${BASE_COMMIT}^" >/dev/null 2>&1; then
+    # Check if rebase is in progress (conflicts)
+    if [[ -d ".git/rebase-merge" ]] || [[ -d ".git/rebase-apply" ]]; then
+        log_error "Rebase resulted in conflicts. Aborting..."
+        git rebase --abort
+        exit 1
+    else
+        log_error "Rebase failed"
+        exit 1
+    fi
+fi
+
+log_info "Rebase completed successfully"
+
+# The commits from base onwards have been rewritten
+NEW_COMMITS=($(get_commits_in_range "${BASE_COMMIT}^" HEAD))
+
+# Log the mapping for debugging
+log_info "Mapping commit changes..."
+for i in "${!COMMITS_IN_RANGE[@]}"; do
+    old_commit="${COMMITS_IN_RANGE[$i]}"
+    if [[ $i -lt ${#NEW_COMMITS[@]} ]]; then
+        new_commit="${NEW_COMMITS[$i]}"
+        log_info "  $(git rev-parse --short "$old_commit") -> $(git rev-parse --short "$new_commit")"
+    fi
+done
+
+# If not in drop mode, check that the contents of the rebased branch is identical to the original contents
+if [[ "$OPERATION_TYPE" != "drop" ]]; then
+    if ! git diff --quiet "$TEMP_BRANCH" "$CURRENT_BRANCH"; then
+        log_error "Detected changes to repository contents after rebase"
+        exit 1
+    fi
+fi
+
+# Update all tracked branches
+log_info "Updating branch references..."
+
+for i in "${!BRANCH_NAMES[@]}"; do
+    branch="${BRANCH_NAMES[$i]}"
+    original_depth="${BRANCH_DEPTHS[$i]}"
+    
+    # Calculate adjusted depth based on operation type
+    adjusted_depth=$original_depth
+    
+    if [[ "$OPERATION_TYPE" == "pick" ]]; then
+        # In pick mode: branches before the picked commit shift down by 1
+        # because we're inserting the picked commit after the base
+        if [[ $FIXUP_DEPTH -gt 0 ]] && [[ $original_depth -lt $FIXUP_DEPTH ]]; then
+            adjusted_depth=$((original_depth + 1))
+        fi
+        # Branches at or after the picked commit stay at the same depth
+    elif [[ "$OPERATION_TYPE" == "drop" ]]; then
+        # In drop mode: branches after the dropped commit shift up by 1
+        # because we're removing the dropped commit
+        if [[ $FIXUP_DEPTH -ge 0 ]] && [[ $original_depth -ge $FIXUP_DEPTH ]]; then
+            adjusted_depth=$((original_depth - 1))
+        fi
+        # Branches at or before the dropped commit stay at the same depth
+    elif [[ "$OPERATION_TYPE" == "swap" ]]; then
+        # In swap mode: swap depths for BASE_COMMIT (depth 0) and FIXUP_COMMIT (depth FIXUP_DEPTH)
+        # all other commits are unaffected
+        if [[ $original_depth -eq 0 ]]; then
+            adjusted_depth=$FIXUP_DEPTH
+        elif [[ $original_depth -eq $FIXUP_DEPTH ]]; then
+            # edge case: if the swap operation is moving the current HEAD branch commit backwards,
+            # the user intent is likely refactoring the current HEAD branch, so don't move the HEAD branch backwards
+            if [[ "$branch" != "$CURRENT_BRANCH" ]]; then
+                adjusted_depth=0
+            fi
+        fi
+    else
+        # In fixup/amend mode: commits after the fixup commit shift up by 1
+        # because the fixup gets squashed into the base commit
+        if [[ $FIXUP_DEPTH -ge 0 ]] && [[ $original_depth -ge $FIXUP_DEPTH ]]; then
+            adjusted_depth=$((original_depth - 1))
+        fi
+    fi
+    
+    # Find the new commit at this adjusted depth
+    if [[ $adjusted_depth -lt ${#NEW_COMMITS[@]} ]]; then
+        new_commit="${NEW_COMMITS[$adjusted_depth]}"
+        log_info "  Updating branch '$branch' to $(git rev-parse --short "$new_commit") (depth $original_depth -> $adjusted_depth)"
+        git branch --force "$branch" "$new_commit" >/dev/null 2>&1
+    else
+        log_warn "  Could not find new commit for branch '$branch' at adjusted depth $adjusted_depth (original depth $original_depth)"
+    fi
+done
+
+# Checkout original branch
+log_info "Returning to branch: $CURRENT_BRANCH"
+git checkout "$CURRENT_BRANCH" >/dev/null 2>&1
+
+# Delete temporary branch
+log_info "Deleting temporary branch: $TEMP_BRANCH"
+git branch -D "$TEMP_BRANCH" >/dev/null 2>&1
+
+# Clean up temporary files
+rm -f "$REBASE_EDITOR_SCRIPT"
+
+if [[ "$OPERATION_TYPE" == "pick" ]]; then
+    log_info "Successfully reordered $(git rev-parse --short "$FIXUP_COMMIT") after $(git rev-parse --short "$BASE_COMMIT")"
+elif [[ "$OPERATION_TYPE" == "drop" ]]; then
+    log_info "Successfully dropped $(git rev-parse --short "$FIXUP_COMMIT") from history"
+elif [[ "$OPERATION_TYPE" == "swap" ]]; then
+    log_info "Successfully swapped $(git rev-parse --short "$FIXUP_COMMIT") and $(git rev-parse --short "$BASE_COMMIT")"
+else
+    log_info "Successfully applied $OPERATION_TYPE commit $(git rev-parse --short "$FIXUP_COMMIT") to $(git rev-parse --short "$BASE_COMMIT")"
+fi 

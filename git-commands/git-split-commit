@@ -1,0 +1,460 @@
+#!/bin/bash
+set -euo pipefail
+
+usage() {
+    local command="$(basename "$0")"
+    echo "Usage: $command [--validate] <commit-hash> [< plan-file]"
+    echo "   or: cat plan-file | $command <commit-hash>"
+    echo "   or: $command <commit-hash>  # Interactive mode"
+    echo ""
+    echo "Split a single commit into multiple focused commits based on a plan."
+    echo ""
+    echo "If no plan file is provided via stdin and running in an interactive shell,"
+    echo "your editor will open with a default template based on the original commit."
+    echo ""
+    echo "Plan format:"
+    echo "  COMMIT: <commit message line 1>"
+    echo "  <additional commit message lines>"
+    echo "  "
+    echo "  FILES:"
+    echo "  <status><tab><filename>"
+    echo "  <status><tab><filename>"
+    echo "  ..."
+    echo "  "
+    echo "  COMMIT: <next commit message>"
+    echo "  ..."
+    echo ""
+    echo "File status codes:"
+    echo "  A  = Added file"
+    echo "  M  = Modified file"  
+    echo "  D  = Deleted file"
+    echo "  R  = Renamed file (format: R<tab>old_name<tab>new_name)"
+    echo ""
+    echo "Examples:"
+    echo "  $command a526291 < plan.txt"
+    echo "  cat plan.txt | $command a526291"
+    echo "  $command a526291  # Opens editor for interactive planning"
+}
+
+# If no arguments were passed, print the usage instructions
+if [[ $# -eq 0 ]]; then
+    usage
+    exit 1
+fi
+
+# If the --help argument was passed, print the usage instructions
+if [[ "$1" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+# If the --validate argument was passed, set the validate flag and shift the argument
+if [[ "$1" == "--validate" ]]; then
+    VALIDATE=true
+    shift
+else
+    VALIDATE=false
+fi
+
+# If an incorrect number of arguments was passed, print the usage instructions
+if [[ $# -ne 1 ]]; then
+    usage
+    exit 1
+fi
+
+# Parse the commit hash from the first argument
+COMMIT_REV="$1"
+COMMIT_HASH=$(git rev-parse "$COMMIT_REV")
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+log() {
+    echo -e "$1" >&2
+}
+
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1" >&2
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1" >&2
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1" >&2
+}
+
+# Function to generate a default split plan template based on the original commit
+generate_default_template() {
+    local commit_hash="$1"
+    local commit_short=$(git rev-parse --short "$commit_hash")
+    local commit_subject=$(git log --format="%s" -n 1 "$commit_hash")
+    local commit_message=$(git log --format="%s" -n 1 "$commit_hash")
+    local commit_files=$(git show --name-status --format="" "$commit_hash" | sed 's/^R[[:digit:]]*/R/')
+    
+    cat << EOF
+# Split plan for commit $commit_short
+#
+# This is the default plan that recreates the original commit.
+# You can split this into multiple commits by:
+# 1. Adding new COMMIT: sections
+# 2. Moving files between commits  
+# 3. Modifying commit messages
+#
+# Lines starting with # are comments and will be ignored.
+# 
+# Plan format:
+#   COMMIT: <commit message line 1>
+#   <additional commit message lines>
+#   
+#   FILES:
+#   <status><tab><filename>
+#   ...
+#
+# File status codes:
+#   A = Added file
+#   M = Modified file  
+#   D = Deleted file
+#   R = Renamed file (format: R<tab>old_name<tab>new_name)
+
+COMMIT: $commit_message
+
+FILES:
+$commit_files
+EOF
+}
+
+# Function to handle interactive editing of the split plan
+interactive_edit_plan() {
+    local commit_hash="$1"
+    
+    # Determine editor to use
+    local editor="${EDITOR:-${VISUAL:-vi}}"
+    
+    # Create temporary file for the plan
+    local temp_file=$(mktemp /tmp/git-split-commit-XXXXXX)
+    
+    # Generate default template
+    log_info "Generating default split plan template"
+    generate_default_template "$commit_hash" > "$temp_file"
+    
+    # Open editor
+    log_info "Opening editor to edit split plan..."
+    if ! "$editor" "$temp_file" < /dev/tty > /dev/tty 2>&1; then
+        rm -f "$temp_file"
+        log_error "Editor exited with non-zero status. Aborting."
+        exit 1
+    fi
+    
+    # Check if file was modified (not just saved as-is)
+    if [ ! -s "$temp_file" ]; then
+        rm -f "$temp_file"
+        log_error "Empty plan file. Aborting."
+        exit 1
+    fi
+    
+    # Read the edited content
+    cat "$temp_file"
+    
+    # Clean up
+    rm -f "$temp_file"
+}
+
+# Validate commit hash exists
+if ! git rev-parse --verify "$COMMIT_HASH" >/dev/null 2>&1; then
+    log_error "Invalid commit hash: $COMMIT_HASH"
+    exit 1
+fi
+
+# Check if working tree is clean
+if ! git diff-index --quiet HEAD --; then
+    log_error "Working tree is not clean. Please commit or stash changes."
+    exit 1
+fi
+
+# Check if staged changes exist
+if ! git diff-index --quiet --cached HEAD --; then
+    log_error "Staged changes exist. Please commit or reset them."
+    exit 1
+fi
+
+# Ensure the original commit is a parent of the current HEAD
+if ! git merge-base --is-ancestor "$COMMIT_HASH" HEAD; then
+    log_error "The commit $COMMIT_HASH is not a parent of the current HEAD."
+    exit 1
+fi
+
+# Check if stdin has data, if not use interactive mode
+if [ -t 0 ]; then
+    # No stdin data, try interactive mode
+    log_info "No plan provided via stdin, starting interactive mode"
+    plan_content=$(interactive_edit_plan "$COMMIT_HASH")
+else
+    # Read plan content from stdin
+    log_info "Reading plan from stdin"
+    plan_content=$(cat)
+fi
+
+# Get the original commit's file changes
+log_info "Analyzing original commit $COMMIT_HASH"
+original_files=$(git show --name-status --format="" "$COMMIT_HASH" | sed 's/^R[[:digit:]]*/R/' | sort)
+
+# Parse plan and extract all planned files
+log_info "Parsing plan content"
+planned_files=""
+in_files_section=false
+
+while IFS= read -r line; do
+    # Skip comments and empty lines
+    if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "$line" ]]; then
+        continue
+    fi
+    
+    if [[ "$line" =~ ^COMMIT: ]]; then
+        in_files_section=false
+        continue
+    fi
+    
+    if [[ "$line" == "FILES:" ]]; then
+        in_files_section=true
+        continue
+    fi
+    
+    if [ "$in_files_section" = true ]; then
+        if [[ "$line" =~ ^([AMD][[:space:]]|R([0-9][0-9][0-9])?[[:space:]]) ]]; then
+            planned_files+="$line"$'\n'
+            continue
+        else
+            log_error "Invalid file entry:\n$line"
+            exit 1
+        fi
+    fi
+
+    log_error "Invalid line in plan:\n$line"
+    exit 1
+
+done <<< "$plan_content"
+
+# Sort planned files for comparison
+planned_files_sorted=$(echo "$planned_files" | grep -v '^$' | sort)
+
+# Validate that all original files are accounted for
+log_info "Validating that all files are accounted for..."
+if [ "$original_files" != "$planned_files_sorted" ]; then
+    log_error "File mismatch detected!"
+    log ""
+    log "Original commit files:"
+    log "$original_files"
+    log ""
+    log "Planned files:"
+    log "$planned_files_sorted"
+    log ""
+    log "Missing from plan:"
+    comm -23 <(echo "$original_files") <(echo "$planned_files_sorted")
+    log ""
+    log "Extra in plan:"
+    comm -13 <(echo "$original_files") <(echo "$planned_files_sorted")
+    exit 1
+fi
+
+log_info "File validation passed - all changes accounted for"
+
+# If this is a validate-only workflow, exit suggessfully
+if [ "$VALIDATE" = true ]; then
+    exit 0
+fi
+
+# Helper function to create commit with original commit reference
+create_commit() {
+    local message="$1"
+    local original_short=$(git rev-parse --short "$COMMIT_HASH")
+    local original_subject=$(git log --format="%s" -n 1 "$COMMIT_HASH")
+    local full_message="$message
+
+# Split from commit $original_short: $original_subject"
+    
+    git commit -m "$full_message"
+}
+
+# Function to process a single file entry and stage it appropriately
+stage_file() {
+    local status_line="$1"
+    # Use read with tab as delimiter to split the status line
+    read -r status filename renamed_filename <<< "$status_line"
+    local repo_path="$(git rev-parse --show-toplevel)"
+    
+    case "$status" in
+        A|M)
+            (cd $repo_path && git add $filename)
+            ;;
+        D)
+            (cd $repo_path && git rm $filename)
+            ;;
+        R|R[0-9][0-9][0-9])
+            (cd $repo_path && git add $filename $renamed_filename)
+            ;;
+        *)
+            log_error "Unknown file status: $status"
+            exit 1
+            ;;
+    esac
+}
+
+# Create a temporary branch from the current HEAD
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+ORIGINAL_COMMIT="$(git rev-parse HEAD)"
+ORIGINAL_COMMIT_ALIAS="$(git rev-parse --short HEAD)"
+TEMP_BRANCH="$CURRENT_BRANCH.split-$(date +%Y%m%d-%H%M%S)"
+log_info "Creating temporary branch from $ORIGINAL_COMMIT_ALIAS: $TEMP_BRANCH"
+git checkout -b "$TEMP_BRANCH"
+
+# Reset to the commit we want to split
+log_info "Checking out commit to split: $COMMIT_HASH"
+git reset --hard "$COMMIT_HASH"
+
+# Reset soft to preserve all changes in staging area
+log_info "Resetting to preserve changes for splitting"
+git reset --soft HEAD^
+
+# Unstage everything so we can selectively stage for each split commit
+git reset HEAD
+
+# Now process the plan to create split commits
+log_info "Processing plan to create split commits..."
+
+current_commit_message=""
+current_files=()
+in_commit_message=false
+in_files_section=false
+commit_count=0
+
+while IFS= read -r line; do
+    # Skip comments
+    if [[ "$line" =~ ^[[:space:]]*# ]]; then
+        continue
+    fi
+    
+    # Empty line handling
+    if [[ -z "$line" ]]; then
+        if [ "$in_commit_message" = true ]; then
+            current_commit_message+=$'\n'
+        fi
+        continue
+    fi
+    
+    if [[ "$line" =~ ^COMMIT: ]]; then
+        # Process previous commit if we have one
+        if [ ${#current_files[@]} -gt 0 ]; then
+            commit_count=$((commit_count + 1))
+            log_info "Creating split commit $commit_count with ${#current_files[@]} files"
+            
+            # Stage files for this commit
+            for file_entry in "${current_files[@]}"; do
+                stage_file "$file_entry"
+            done
+            
+            # Create the commit
+            create_commit "$current_commit_message"
+            
+            # Reset for next commit
+            current_files=()
+        fi
+        
+        # Start new commit
+        current_commit_message="${line#COMMIT: }"
+        in_commit_message=true
+        in_files_section=false
+        continue
+    fi
+    
+    if [[ "$line" == "FILES:" ]]; then
+        in_commit_message=false
+        in_files_section=true
+        continue
+    fi
+    
+    if [ "$in_commit_message" = true ]; then
+        echo "current_commit_message: $current_commit_message"
+        if [ -n "$current_commit_message" ]; then
+            current_commit_message+=$'\n'
+        fi
+        current_commit_message+="$line"
+        continue
+    fi
+
+    if [ "$in_files_section" = true ]; then
+        if [[ "$line" =~ ^([AMD][[:space:]]|R([0-9][0-9][0-9])?[[:space:]]) ]]; then
+            current_files+=("$line")
+            continue
+        fi
+        log_error "Invalid file entry:\n$line"
+        exit 1
+    fi
+
+    log_error "Invalid line in plan:\n$line"
+    exit 1
+
+    
+done <<< "$plan_content"
+
+# Process the final commit
+if [ ${#current_files[@]} -gt 0 ]; then
+    commit_count=$((commit_count + 1))
+    log_info "Creating split commit $commit_count with ${#current_files[@]} files"
+    
+    # Stage files for this commit
+    for file_entry in "${current_files[@]}"; do
+        stage_file "$file_entry"
+    done
+    
+    # Create the commit
+    create_commit "$current_commit_message"
+fi
+
+# Show the result
+log ""
+log_info "New commit history:"
+git log --oneline -n $commit_count
+
+# Cherry-pick any remaining changes after the split from the original branch
+if [[ $(git rev-list --count "$COMMIT_HASH..$ORIGINAL_COMMIT") -gt 0 ]]; then
+    log_info "Re-applying subsequent commits between $COMMIT_HASH and $ORIGINAL_COMMIT:"
+    git rev-list "$COMMIT_HASH..$ORIGINAL_COMMIT"
+    git cherry-pick "$COMMIT_HASH..$ORIGINAL_COMMIT" || {
+        log_error "Cherry-pick failed. Please resolve conflicts and try again."
+        exit 1
+    }
+fi
+
+# Diff the rebased branch with the original commit to ensure correctness
+log_info "Verifying split commits against original commit"
+if ! git diff --quiet "$ORIGINAL_COMMIT" HEAD; then
+    log_error "Split commits do not match the original commit. Please check for discrepancies."
+    log "Differences found:"
+    git diff "$ORIGINAL_COMMIT" HEAD
+    exit 1
+fi
+
+# Reset the original branch to the current commit
+log_info "Resetting $CURRENT_BRANCH to current commit"
+git branch --force "$CURRENT_BRANCH" || {
+    log_error "Failed to reset $CURRENT_BRANCH to current commit"
+    exit 1
+}
+git checkout "$CURRENT_BRANCH" || {
+    log_error "Failed to checkout $CURRENT_BRANCH"
+    exit 1
+}
+
+# Delete the temporary branch
+log_info "Deleting temporary branch: $TEMP_BRANCH"
+git branch -D "$TEMP_BRANCH" || {
+    log_warn "Failed to delete temporary branch $TEMP_BRANCH"
+}
+
+log_info "Successfully split commit $COMMIT_HASH into $commit_count commits"
+log_info "Split commits are now on branch: $CURRENT_BRANCH"

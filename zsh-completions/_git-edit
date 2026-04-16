@@ -1,0 +1,32 @@
+#compdef git-edit
+#description edit commit history via interactive rebase
+
+# Completion for git-edit command
+
+_git-edit() {
+    local curcontext="$curcontext" state line
+    typeset -A opt_args
+    
+    # Get a list of all git commits
+    local -a git_commits
+    git_commits=($(git log --format="%H" 2>/dev/null))
+
+    # Function to complete git commits
+    __git_commits() {
+        if [[ -n "$git_commits" ]]; then
+            _describe -t commits 'commit' git_commits
+        fi
+    }
+
+    _arguments -C \
+        '(- :)--help[Show usage information]' \
+        '--force[Allow rebase even if merge commits exist]' \
+        '(--amend --pick --drop)--fixup[Squash changes into the base commit]' \
+        '(--fixup --pick --drop)--amend[Create an amend fixup commit that updates the commit message]' \
+        '(--fixup --amend --drop)--pick[Reorder the commit to be placed after the base commit]' \
+        '(--fixup --amend --pick)--drop[Drop the specified commit from the history]' \
+        '1:commit:__git_commits' \
+        '2:fixup/pick commit:__git_commits'
+}
+
+_git-edit "$@"

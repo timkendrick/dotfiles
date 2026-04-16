@@ -1,0 +1,234 @@
+#!/bin/bash
+
+# Test if an interactive rebase sequence will result in conflicts
+# Usage: git-rebase-validate <base-commit> < rebase-sequence.txt
+# Outputs conflict information to stdout, logs to stderr
+
+set -euo pipefail
+
+usage() {
+    local command="$(basename "$0")"
+    echo "Usage: $command <base-commit> < rebase-sequence.txt"
+    echo "   or: cat rebase-sequence.txt | $command <base-commit>"
+    echo ""
+    echo "Test if an interactive rebase sequence will result in conflicts"
+    echo "Accepts a standard git rebase sequence from stdin"
+    echo "Outputs conflict information to stdout"
+}
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Logging functions (output to stderr)
+log() {
+    echo -e "$1" >&2
+}
+
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1" >&2
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1" >&2
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1" >&2
+}
+
+# Check arguments
+if [ $# -ne 1 ]; then
+    usage
+    exit 1
+fi
+
+# If the --help argument was passed, print the usage instructions
+if [[ "$1" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+BASE_COMMIT="$1"
+
+# Check if working tree is clean
+if ! git diff-index --quiet HEAD --; then
+    log_error "Working tree is not clean. Please commit or stash changes."
+    exit 1
+fi
+
+# Check if staged changes exist
+if ! git diff-index --quiet --cached HEAD --; then
+    log_error "Staged changes exist. Please commit or reset them."
+    exit 1
+fi
+
+# Validate base commit
+if ! git rev-parse --verify "$BASE_COMMIT" >/dev/null 2>&1; then
+    log_error "Invalid base commit: $BASE_COMMIT"
+    exit 1
+fi
+
+# Ensure the base commit is a parent of the current HEAD
+if ! git merge-base --is-ancestor "$BASE_COMMIT" HEAD; then
+    log_error "The commit $BASE_COMMIT is not a parent of the current HEAD."
+    exit 1
+fi
+
+# Save stdin to temporary file
+REBASE_SEQUENCE="/tmp/rebase_sequence_$$.txt"
+cat > "$REBASE_SEQUENCE"
+
+if [ ! -s "$REBASE_SEQUENCE" ]; then
+    log_error "No rebase sequence provided via stdin"
+    rm -f "$REBASE_SEQUENCE"
+    exit 1
+fi
+
+# Count total commits for progress
+TOTAL_COMMITS=$(grep -c "^pick " "$REBASE_SEQUENCE" || echo "0")
+log_info "Testing rebase of $TOTAL_COMMITS commits"
+
+# Save current branch
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+log_info "Current branch: $CURRENT_BRANCH"
+
+# Create a temporary branch for testing
+TEST_BRANCH="temp-rebase-test-$$"
+log_info "Creating temporary test branch at commit $(git rev-parse --short HEAD): $TEST_BRANCH"
+git checkout -b "$TEST_BRANCH" >/dev/null 2>&1
+
+# Temporary file for conflict data
+CONFLICT_FILE="/tmp/conflict_data_$$.txt"
+> "$CONFLICT_FILE"
+
+# Temporary file for rebase output
+REBASE_OUTPUT="/tmp/rebase_output_$$.txt"
+
+# Temporary file for rebase editor script
+REBASE_EDITOR_SCRIPT="/tmp/test_rebase_editor_$$.sh"
+
+# Counter for processed commits
+PROCESSED_COMMITS=0
+
+# Function to cleanup on exit
+cleanup() {
+    log_info "Cleaning up..."
+    git rebase --abort 1>&2 || true
+    git checkout "$CURRENT_BRANCH" 1>/dev/null || true
+    git branch -D "$TEST_BRANCH" 1>&2 || true
+    rm -f "$REBASE_SEQUENCE" "$REBASE_EDITOR_SCRIPT" "$CONFLICT_FILE" "$REBASE_OUTPUT" 1>&2 || true
+}
+trap cleanup EXIT
+
+# Prepare the rebase editor script
+cat > "$REBASE_EDITOR_SCRIPT" << EOF
+#!/bin/bash
+cp "$REBASE_SEQUENCE" "\$1"
+EOF
+chmod +x "$REBASE_EDITOR_SCRIPT"
+
+log_info "Rewinding current head to $BASE_COMMIT"
+
+# Function to get current rebase progress
+get_rebase_progress() {
+    if [ -f ".git/rebase-merge/msgnum" ] && [ -f ".git/rebase-merge/end" ]; then
+        local current=$(cat .git/rebase-merge/msgnum)
+        local total=$(cat .git/rebase-merge/end)
+        echo "[$current/$total]"
+    else
+        echo ""
+    fi
+}
+
+# Function to show a summary of the current commit being processed
+format_commit_summary() {
+    local commit_hash="$1"
+    local commit_msg=$(git log -1 --format="%s" "$commit_hash" 2>/dev/null || echo "unknown")
+    local progress=$(get_rebase_progress)
+    echo "$progress ${commit_hash:0:7} $commit_msg"
+}
+
+# Start the rebase and capture exit code
+if GIT_SEQUENCE_EDITOR="$REBASE_EDITOR_SCRIPT" GIT_EDITOR=true git rebase -i "$BASE_COMMIT" > "$REBASE_OUTPUT" 2>&1; then
+    # Rebase succeeded
+    log_info "Rebase completed successfully!"
+else
+    # Rebase failed - check for conflicts
+    REBASE_EXIT_CODE=$?
+    
+    # Check if the rebase is still in progress (indicating conflicts)
+    if [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; then
+        log_info "Rebase stopped, checking for conflicts"
+        
+        # Continue processing conflicts until rebase is complete
+        while [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; do
+            # Check for conflicts using various patterns
+            # UU = both modified, AA = both added, DD = both deleted
+            # DU = deleted by us, UD = deleted by them
+            if git status --porcelain | grep -E "^(UU|AA|DD|DU|UD) " >/dev/null; then
+                # Get current commit being rebased
+                CURRENT_COMMIT=""
+                if [ -f ".git/rebase-merge/stopped-sha" ]; then
+                    CURRENT_COMMIT=$(cat .git/rebase-merge/stopped-sha)
+                elif [ -f ".git/rebase-apply/original-commit" ]; then
+                    CURRENT_COMMIT=$(cat .git/rebase-apply/original-commit)
+                else
+                    CURRENT_COMMIT="unknown"
+                fi
+                
+                COMMIT_MSG=$(git log -1 --format="%s" "$CURRENT_COMMIT" 2>/dev/null || echo "unknown")
+                
+                
+                log_error "$(format_commit_summary "$CURRENT_COMMIT")"
+                
+                # Write conflict data to file
+                echo "CONFLICT: $CURRENT_COMMIT $COMMIT_MSG" >> "$CONFLICT_FILE"
+                echo "FILES:" >> "$CONFLICT_FILE"
+                
+                # List conflicting files
+                git status --porcelain | grep -E "^(UU|AA|DD|DU|UD) " | while read status file; do
+                    echo "  - $file (${status:0:2})" >> "$CONFLICT_FILE"
+                done
+                echo "" >> "$CONFLICT_FILE"
+                
+                # Try to skip this commit and continue testing
+                if ! git rebase --skip >/dev/null 2>&1; then
+                    break
+                fi
+            else
+                # No conflicts in current state, try to continue
+                if ! git rebase --continue >/dev/null 2>&1; then
+                    if ! git rebase --skip >/dev/null 2>&1; then
+                        break
+                    fi
+                fi
+            fi
+        done
+    else
+        # Rebase failed but no rebase in progress - might be a different error
+        log_warn "Rebase failed with exit code $REBASE_EXIT_CODE but no rebase in progress"
+        
+        # Check if there are conflict markers in the output
+        if grep -q "CONFLICT" "$REBASE_OUTPUT"; then
+            # Extract basic conflict info from output
+            log_error "Rebase output indicates conflicts:"
+            grep "CONFLICT" "$REBASE_OUTPUT" | while read line; do
+                log_error "  $line"
+            done
+        fi
+    fi
+fi
+
+# Check if we found any conflicts
+if [ -s "$CONFLICT_FILE" ]; then
+    log_error "Conflicts detected!"
+    # Output conflict data to stdout
+    cat "$CONFLICT_FILE"
+    exit 1
+else
+    log_info "No conflicts found."
+    exit 0
+fi 
