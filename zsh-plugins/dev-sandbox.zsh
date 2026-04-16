@@ -5,6 +5,7 @@ alias 'dev-sandbox'='sandbox \
   --mise \
   --npm \
   --pi \
+  --plannotator \
   --pnpm \
   --vim \
   --git-repo \

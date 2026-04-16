@@ -36,6 +36,7 @@ Tool-specific convenience flags:
   --mise                Allow read access to all mise-managed tool installs
   --npm                 Allow write access to ~/.npm
   --pi                  Allow write access to ~/.pi
+  --plannotator         Allow write access to ~/.plannotator
   --pnpm                Allow write access to ~/Library/pnpm
   --vim                 Allow read access to ~/.vimrc
   --git-repo            Allow write access to the git repository root (detected via git rev-parse)
@@ -356,6 +357,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --pi)
             PATHS+=("$HOME/.pi")
+            shift
+            ;;
+        --plannotator)
+            PATHS+=("$HOME/.plannotator")
             shift
             ;;
         --npm)
