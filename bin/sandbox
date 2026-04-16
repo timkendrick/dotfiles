@@ -32,7 +32,8 @@ Options:
 
 Tool-specific convenience flags:
   --claude              Allow read+write access to ~/.claude.json and ~/.claude/
-  --docker              Allow write access to ~/.docker/buildx
+  --docker              Allow read access to ~/.docker and write access to ~/.docker/buildx
+  --git                 Allow read access to git config files in the home directory
   --mise                Allow read access to all mise-managed tool installs
   --node                Allow write access to ~/.cache/node/corepack
   --npm                 Allow write access to ~/.npm
@@ -338,9 +339,13 @@ while [[ $# -gt 0 ]]; do
             LITERAL_PATHS+=("$HOME/.claude.json")
             shift
             ;;
-        --git-repo)
+        --git)
+            READONLY_LITERAL_PATHS+=("$HOME/.config/git")
             READONLY_LITERAL_PATHS+=("$HOME/.gitconfig")
             READONLY_LITERAL_PATHS+=("$HOME/.gitignore")
+            shift
+            ;;
+        --git-repo)
             if git_root=$(git rev-parse --show-toplevel 2>/dev/null); then
                 PATHS+=("$git_root")
             fi
