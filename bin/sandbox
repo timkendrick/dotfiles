@@ -38,6 +38,7 @@ Tool-specific convenience flags:
   --git                 Allow read access to git config files in the home directory
   --jj                  Allow read access to jj config files in the home directory
   --keychain            Allow read access to the macOS keychain (via the security CLI)
+  --kubectl             Allow read access to ~/.kube/config
   --mise                Allow read access to all mise-managed tool installs
   --node                Allow write access to ~/.cache/node/corepack
   --npm                 Allow write access to ~/.npm
@@ -367,6 +368,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --keychain)
             READONLY_PATHS+=("$HOME/Library/Keychains")
+            shift
+            ;;
+        --kubectl)
+            READONLY_LITERAL_PATHS+=("$HOME/.kube/config")
             shift
             ;;
         --git-repo)

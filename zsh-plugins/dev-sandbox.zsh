@@ -6,6 +6,7 @@ alias 'dev-sandbox'='sandbox \
   --git \
   --jj \
   --keychain \
+  --kubectl \
   --mise \
   --node \
   --npm \
