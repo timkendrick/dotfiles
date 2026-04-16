@@ -1,6 +1,6 @@
 ---
 name: rapid-workflow
-description: "Interactive workflow for planning and implementing changes"
+description: Interactive workflow for planning and implementing changes
 ---
 # RAPID Workflow
 

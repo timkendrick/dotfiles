@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: "Analyze implementation details and identify potential issues"
+description: Analyze implementation details and identify potential issues
 ---
 
 # Overview
