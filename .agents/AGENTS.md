@@ -14,7 +14,7 @@ Do not perform any actions without having been instructed by the user, either di
 
 ## Coding guidelines
 
-**IMPORTANT:** Make sure you read and thoroughly understand all project code style guidelines before making *any* code changes
+**IMPORTANT:** Make sure you read and thoroughly understand all code style guidelines in `./rules/` before making *any* code changes
 
 Use diagnostics tools after each code change to confirm any errors or warnings introduced by the changes. 
 

@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Recursively symlink all files from a source directory into a target directory.
+# Usage: link-config-dir [--dry-run] <source> <target>
+set -euo pipefail
+
+usage() {
+  echo "Usage: $(basename "$0") [--dry-run] <source> <target>"
+}
+
+dry_run=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) dry_run=true; shift ;;
+    --) shift; break ;;
+    -*) echo "Unknown option: $1" >&2; exit 1 ;;
+    *) break ;;
+  esac
+done
+
+if [[ $# -ne 2 ]]; then
+  usage >&2
+  exit 1
+fi
+
+src="$1"
+dst="$2"
+
+# Run a command, printing it first
+# If the dry_run environment variable is true, only print the command without executing it.
+run() {
+  echo "$*" >&2
+  if [[ "$dry_run" == false ]]; then
+    "$@"
+  fi
+}
+
+# Perform a depth-first traversal of the source directory,
+# linking all non-directory files into the target directory,
+# preserving the source directory structure in the target directory.
+stack=("$src:$dst")
+while [ ${#stack[@]} -gt 0 ]; do
+  entry="${stack[@]:0:1}"; stack=("${stack[@]:1}")
+  s="${entry%%:*}"; d="${entry##*:}"
+  run mkdir -p "$d"
+  for file in "$s"/*; do
+    if [ -d "$file" ] && [ ! -L "$file" ]; then
+      stack+=("$file:$d/$(basename "$file")")
+    else
+      target="$(realpath "$file")"
+      link="$d/$(basename "$file")"
+      # If the link already exists and points to the correct target,
+      # skip the link operation by running the command in dry_run mode
+      already_linked=false
+      [ "$(readlink "$link")" = "$target" ] && already_linked=true
+      ([ "$already_linked" = true ] && dry_run=true; run ln -s "$target" "$link")
+    fi
+  done
+done
