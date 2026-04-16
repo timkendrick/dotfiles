@@ -1,9 +1,7 @@
 {
   "packages": [
-    "npm:@lukebarton/pi-de-claude",
     "npm:@tmustier/pi-usage-extension",
     "npm:lsp-pi",
-    "npm:pi-ask-tool-extension",
     "npm:pi-mcp-adapter",
     "npm:pi-md-export",
     "npm:pi-powerline-footer",
