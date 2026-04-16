@@ -43,6 +43,8 @@ watchexec = "latest"
 "npm:pi-skill-palette" = "latest"
 "npm:pi-subagents" = "latest"
 "npm:pi-web-providers" = "latest"
+"npm:typescript" = "latest"
+"npm:typescript-language-server" = "latest"
 
 [settings]
 experimental = true
