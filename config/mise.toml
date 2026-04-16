@@ -5,6 +5,7 @@ awscli = { version = "latest", symlink_bins = "true" }
 claude-code = "latest"
 dotnet = "latest"
 duckdb = "latest"
+fd = "latest"
 fzf = "latest"
 glow = "latest"
 go = "latest"
