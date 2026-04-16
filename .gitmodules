@@ -1,0 +1,3 @@
+[submodule "nx-completion"]
+	path = dependencies/nx-completion
+	url = https://github.com/jscutlery/nx-completion.git
