@@ -1,6 +1,7 @@
 [tools]
 helm = "latest"
 jj = "latest"
+k9s = "latest"
 kubectl = "latest"
 node = "22"
 pipx = "latest"
