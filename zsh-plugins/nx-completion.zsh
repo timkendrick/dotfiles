@@ -3,4 +3,4 @@ PACKAGE_ROOT=$(realpath "${0:a:h}/..")
 
 DEPENDENCIES_PATH="$PACKAGE_ROOT/dependencies"
 
-source "$DEPENDENCIES_PATH/nx-completion/nx-completion.plugin.zsh"
+load_completions nx "cat $DEPENDENCIES_PATH/nx-completion/nx-completion.plugin.zsh"

@@ -1,1 +1,1 @@
-source <(docker completion zsh)
+load_completions docker 'docker completion zsh'

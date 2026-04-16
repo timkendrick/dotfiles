@@ -1,1 +1,1 @@
-source <(argo completion zsh)
+load_completions argo 'argo completion zsh'

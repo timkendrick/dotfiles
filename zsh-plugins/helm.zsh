@@ -1,1 +1,1 @@
-source <(helm completion zsh)
+load_completions helm 'helm completion zsh'
