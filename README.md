@@ -23,3 +23,11 @@ echo 'source ~/.config/dotfiles/config/.vimrc' >> ~/.vimrc
 mkdir -p ~/.vim/pack
 ln -s ~/.config/dotfiles/vim-plugins ~/.vim/pack/dotfiles
 ```
+
+Install global `AGENTS.md` guidelines for installed CLI agents:
+
+```bash
+ln -s $(realpath .agents/AGENTS.md) ~/.claude/CLAUDE.md
+ln -s $(realpath .agents/AGENTS.md) ~/.codex/AGENTS.md
+ln -s $(realpath .agents/AGENTS.md) ~/.pi/agent/AGENTS.md
+```
