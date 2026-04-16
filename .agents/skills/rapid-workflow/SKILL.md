@@ -1,6 +1,6 @@
 ---
 name: rapid-workflow
-description: Interactive workflow for planning and implementing changes
+description: Interactive workflow for planning and implementing changes. Always use before planning or implementing any non-trivial changes.
 ---
 # RAPID Workflow
 
@@ -8,7 +8,7 @@ description: Interactive workflow for planning and implementing changes
 
 1. **Research** – Based on the user's initial prompt, research relevant context within the codebase.
 2. **Ask** – Ask the user a long series of increasingly-specific questions using your `ask` tool to determine all implementation details.
-3. **Plan** – Present the user with a comprehensive plan **including code snippets of all relevant parts**, and await user confirmation. If the user provides feedback, update the plan to address the feedback, and await user confirmation until the user is happy. Once all feedback has been addressed, prompt the user to save the plan to @.agents/plans for future reference. The saved plan is intended to be in isolation from any chat context and should therefore be standalone and exhaustive: it should contain not only the plan as presented to the user but additionally all relevant context from the previous Research and Ask steps. Include all relevant research findings (including paths and identifiers for relevant source code and documentation), and any other potentially useful context that was uncovered during the research phase, as well as a transcript of the user's questionnaire and responses.
+3. **Plan** – Use your `plan` skill to produce a comprehensive plan for the changes. Include all relevant research findings and any other potentially useful context that was uncovered during the research phase, as well as a transcript of the user's questionnaire and responses. Await user feedback on the plan, iterating the plan until the user has explicitly confirmed that they are happy to move on to implementation.
 4. **Implement** – Implement the changes as instructed in the plan. Make sure to commit and check diagnostics before moving on.
 5. **Diagnostics** – Use diagnostics tools to ensure that the changes have not introduced any new errors or warnings. Run lint/test commands and *make sure they pass* before considering the change implemented.
 
