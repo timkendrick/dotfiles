@@ -18,5 +18,5 @@ pi-install() {
 
 pi-uninstall() {
   local pkg="$1"
-  (mise unuse --global "$pkg" && mise-unlink-global-npm-package "$pkg"); pi uninstall "$pkg"
+  (mise unuse --global "$pkg" && mise-unlink-global-npm-packages "$pkg"); pi uninstall "$pkg"
 }
