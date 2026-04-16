@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+
+# Show the git branch name for a given revision, defaulting to the current HEAD commit
+# Usage: git-branch-name [<revision>]
+
+# Get the revision from the first argument, defaulting to HEAD if not provided
+REVISION="${1:-HEAD}"
+
+# Get the name of the revision
+git name-rev --name-only "$REVISION"

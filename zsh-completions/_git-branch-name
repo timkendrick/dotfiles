@@ -1,0 +1,20 @@
+#compdef git-branch-name
+#description show the git branch name for a given revision
+
+_git-branch-name() {
+    # Get a list of all git commits
+    local -a git_commits
+    git_commits=($(git log --format="%H" 2>/dev/null))
+
+    # Function to complete git commits
+    __git_commits() {
+        if [[ -n "$git_commits" ]]; then
+            _describe -t commits 'commit' git_commits
+        fi
+    }
+
+    _arguments \
+        '1:revision hash:__git_commits'
+}
+
+_git-branch-name "$@"
