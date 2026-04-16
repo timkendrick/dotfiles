@@ -14,10 +14,14 @@ setopt HIST_BEEP
 # Get the directory of the current script
 PACKAGE_ROOT="${0:a:h}"
 
+BIN_PATH="$PACKAGE_ROOT/bin"
 ZSH_ENV_PATH="$PACKAGE_ROOT/zsh-env"
 ZSH_PLUGINS_PATH="$PACKAGE_ROOT/zsh-plugins"
 ZSH_COMPLETIONS_PATH="$PACKAGE_ROOT/zsh-completions"
 ZSH_SYNTAX_HIGHLIGHTING_PATH="$PACKAGE_ROOT/zsh-syntax-highlighting"
+
+# Add bin directory to PATH
+export PATH="$BIN_PATH:$PATH"
 
 # Initialize zsh shell environment variables
 for config in "$ZSH_ENV_PATH"/*.env(ND); do

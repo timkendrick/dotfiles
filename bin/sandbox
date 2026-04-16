@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# macOS Sandbox Wrapper Script
+# Usage: sandbox [write_path1, write_path2, ...] -- <command> [arguments...]
+
+# Script setup
+SCRIPT_DIR="$(dirname "$0")"
+CONFIG_TEMPLATE="$SCRIPT_DIR/sandbox.sb"
+
+if [[ ! -f "$CONFIG_TEMPLATE" ]]; then
+    echo "Error: Sandbox template file not found at $CONFIG_TEMPLATE" >&2
+    exit 1
+fi
+
+usage() {
+    cat <<EOF
+macOS Sandbox Wrapper
+Run commands in a restricted sandbox environment with read-only filesystem access
+
+Usage:
+  $(basename "$0") [options] -- <command> [arguments...]
+
+Options:
+  -h, --help            Show this help message and exit
+  --dir <path>          Allow write access to a specific directory or file (subpath)
+  --pattern <regex>     Allow write access to paths matching a regex pattern
+
+Examples:
+  # Allow writing to specific directories
+  $(basename "$0") --dir ./src --dir ./build -- npm run build
+
+  # Allow writing to paths matching a pattern (e.g. temporary logs)
+  $(basename "$0") --pattern "^/var/folders/.*/*.log$" -- touch "$(mktemp -d)"/test.log
+
+  # Read-only execution (default)
+  $(basename "$0") -- ls -la
+
+The following sensitive paths are blocked by default:
+  - ~/.aws
+  - ~/.kube
+  - ~/.ssh
+  - All paths ending with .env, .key, .pem, .crt, .csr
+EOF
+}
+
+# Parse arguments to separate paths and command
+PATHS=()
+PATTERNS=()
+COMMAND_ARGS=()
+SEPARATOR_FOUND=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        --dir)
+            if [[ -z "${2-}" ]]; then
+                echo "Error: --dir requires a path." >&2
+                exit 1
+            fi
+            # Resolve to absolute path
+            arg="$2"
+            if [[ -d "$arg" ]]; then
+                PATHS+=("$(cd "$arg" && pwd)")
+            elif [[ -f "$arg" ]]; then
+                # Support individual files
+                PATHS+=("$(cd "$(dirname "$arg")" && pwd)/$(basename "$arg")")
+            elif [[ "$arg" == /* ]]; then
+                # Absolute path that might not exist yet
+                PATHS+=("$arg")
+            else
+                # Relative path that might not exist yet
+                PATHS+=("$(pwd)/$arg")
+            fi
+            shift 2
+            ;;
+        --pattern)
+            if [[ -z "${2-}" ]]; then
+                echo "Error: --pattern requires a regex." >&2
+                exit 1
+            fi
+            PATTERNS+=("$2")
+            shift 2
+            ;;
+        --)
+            SEPARATOR_FOUND=true
+            shift
+            COMMAND_ARGS=("$@")
+            break
+            ;;
+        *)
+            echo "Error: Unknown argument '$1' before '--'." >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Validate arguments
+if [[ "$SEPARATOR_FOUND" == "false" ]]; then
+    echo "Error: Missing '--' separator." >&2
+    usage >&2
+    exit 1
+fi
+if [[ ${#COMMAND_ARGS[@]} -eq 0 ]]; then
+    echo "Error: No command provided after '--'." >&2
+    usage >&2
+    exit 1
+fi
+
+# Create the sandbox profile (template + appended rules)
+profile_source=$(
+    cat "$CONFIG_TEMPLATE"
+    echo ""
+    echo ";; Allow writing to the user's temp directories"
+    echo "(allow file-write* (subpath \"$(readlink -f "$TMPDIR")\"))"
+    echo "(allow file-write* (subpath \"$(readlink -f "$HOME/Library/Caches")\"))"
+    echo ""
+    echo ";; --- DYNAMICALLY APPENDED WRITE RULES ---"
+    if [[ ${#PATHS[@]} -gt 0 ]]; then
+        for dir in "${PATHS[@]}"; do
+            echo "(allow file-write* (subpath \"$dir\"))"
+        done
+    fi
+    if [[ ${#PATTERNS[@]} -gt 0 ]]; then
+        for pattern in "${PATTERNS[@]}"; do
+            echo "(allow file-write* (regex #\"$pattern\"))"
+        done
+    fi
+)
+
+# Execute the command in the sandbox environment
+exec sandbox-exec -p "$profile_source" "${COMMAND_ARGS[@]}"
