@@ -1,5 +1,4 @@
 alias 'dev-sandbox'='sandbox \
-  --dir . \
   --bash \
   --claude \
   --docker \
@@ -17,4 +16,4 @@ alias 'dev-sandbox'='sandbox \
   --git-repo \
   --jj-repo \
   --dir ~/.config/dotfiles \
-  '
+  --dir .'
