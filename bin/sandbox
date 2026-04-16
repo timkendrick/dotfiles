@@ -43,7 +43,7 @@ Tool-specific convenience flags:
   --pi                  Allow write access to ~/.pi
   --plannotator         Allow write access to ~/.plannotator
   --pnpm                Allow write access to ~/Library/pnpm
-  --vim                 Allow read access to ~/.vimrc
+  --vim                 Allow read access to ~/.vimrc and ~/.vim
   --zsh                 Allow read-only access to ~/.zshenv, ~/.zshrc, and ~/.zprofile
   --git-repo            Allow write access to the git repository root (detected via git rev-parse)
   --jj-repo             Allow write access to the jj workspace root (and linked repo, if any)
@@ -403,6 +403,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --vim)
             READONLY_LITERAL_PATHS+=("$HOME/.vimrc")
+            READONLY_PATHS+=("$HOME/.vim")
             shift
             ;;
         --zsh)
