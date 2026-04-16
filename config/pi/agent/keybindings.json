@@ -1,8 +1,5 @@
 {
   "tui.input.copy": [],
-  "app.editor.external": [
-    "ctrl+x"
-  ],
   "app.interrupt": [
     "ctrl+c"
   ],

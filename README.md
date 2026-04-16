@@ -29,7 +29,8 @@ Register `pi` agent configuration:
 
 ```bash
 scripts/link-config-dir .agents ~/.pi/agent
-scripts/link-config-dir config/.pi/agent ~/.pi/agent
+scripts/link-config-dir config/pi/agent ~/.pi/agent
+scripts/merge-json ~/.pi/agent/settings.json < config/pi/settings.json
 ```
 
 Register `claude` agent configuration:

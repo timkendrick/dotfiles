@@ -14,17 +14,6 @@
     "npm:pi-web-providers"
   ],
   "doubleEscapeAction": "tree",
-  "defaultProvider": "anthropic",
-  "defaultModel": "claude-sonnet-4-6",
-  "defaultThinkingLevel": "off",
   "hideThinkingBlock": false,
-  "enabledModels": [
-    "anthropic/claude-haiku-4-5",
-    "anthropic/claude-sonnet-4-6",
-    "anthropic/claude-opus-4-6",
-    "github-copilot/gemini-3-flash-preview"
-  ],
-  "lastChangelogVersion": "0.65.2",
-  "quietStartup": true,
-  "treeFilterMode": "user-only"
+  "treeFilterMode": "no-tools"
 }
