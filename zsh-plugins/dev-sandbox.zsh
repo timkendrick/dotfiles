@@ -3,6 +3,7 @@ alias 'dev-sandbox'='sandbox \
   --claude \
   --docker \
   --git \
+  --jj \
   --mise \
   --node \
   --npm \
