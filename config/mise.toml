@@ -1,5 +1,6 @@
 [tools]
 awscli = "latest"
+fzf = "latest"
 helm = "latest"
 jj = "latest"
 k9s = "latest"
