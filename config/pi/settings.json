@@ -1,16 +1,12 @@
 {
   "packages": [
-    "npm:@tmustier/pi-usage-extension",
     "npm:lsp-pi",
     "npm:pi-ask-tool-extension",
     "npm:pi-caffeinate",
-    "npm:pi-claude-bridge",
     "npm:pi-mcp-adapter",
     "npm:pi-md-export",
     "npm:pi-powerline-footer",
-    "npm:pi-rewind-hook",
     "npm:pi-skill-palette",
-    "npm:pi-subagents",
     "npm:pi-web-providers"
   ],
   "doubleEscapeAction": "tree",
