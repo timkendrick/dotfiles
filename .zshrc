@@ -18,7 +18,10 @@ ZSH_ENV_PATH="$DOTFILES_PATH/zsh-env"
 ZSH_PLUGINS_PATH="$DOTFILES_PATH/zsh-plugins"
 ZSH_COMPLETIONS_PATH="$DOTFILES_PATH/zsh-completions"
 
-# Initialize shell environment variables
+# Initialize bash environment
+source "$DOTFILES_PATH/.bashrc"
+
+# Initialize zsh shell environment variables
 for config in "$ZSH_ENV_PATH"/*.env(D); do
     [[ -f "$config" ]] && export $(cat "$config" | xargs)
 done
