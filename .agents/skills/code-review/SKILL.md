@@ -66,7 +66,7 @@ Sometimes, you may encounter a line of code that you are unsure about. In this c
 
 ## Step 4: Discuss the issues with the user
 
-Once all the code has been analyzed, use your `plan` skill to create a new plan containing a thorough analysis of the full list of identified issues.
+Once all the code has been analyzed, use your `planning` skill to create a new plan containing a thorough analysis of the full list of identified issues.
 
 Add a section to the plan for each FIXME in turn, provide a brief description and the relevant background context and code snippet, providing multiple-choice suggestions where releveant to determine based on the user's feedback whether it is a valid concern and how it should be addressed.
 
