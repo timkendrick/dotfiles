@@ -15,3 +15,11 @@ Load `.bashrc` / `.zshrc` configuration:
 echo 'source "$HOME/.config/dotfiles/.bashrc"' >> ~/.bashrc
 echo 'source "$HOME/.config/dotfiles/.zshrc"' >> ~/.zshrc
 ```
+
+Load `.vimrc` configuration and plugins:
+
+```bash
+echo 'source ~/.config/dotfiles/config/.vimrc' >> ~/.vimrc
+mkdir -p ~/.vim/pack
+ln -s ~/.config/dotfiles/vim-plugins ~/.vim/pack/dotfiles
+```
