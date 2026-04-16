@@ -28,6 +28,7 @@ done
 FPATH="$ZSH_COMPLETIONS_PATH:$FPATH"
 
 # Activate shell completions
+autoload bashcompinit && bashcompinit
 autoload -Uz compinit && compinit
 
 # Load shell plugins
