@@ -39,12 +39,6 @@
 ;; IPC and Shared Memory
 (allow ipc-posix*)
 
-;; Deny read access to sensitive files
-(deny file-read*
-       (subpath "~/.aws")
-       (subpath "~/.kube")
-       (subpath "~/.ssh"))
-
 ;; Allow write access to temporary directories
 (allow file-write* 
        (subpath "/tmp")

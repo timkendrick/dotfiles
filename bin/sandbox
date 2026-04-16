@@ -22,9 +22,24 @@ Usage:
   $(basename "$0") [options] -- <command> [arguments...]
 
 Options:
-  -h, --help            Show this help message and exit
-  --dir <path>          Allow write access to a specific directory or file (subpath)
-  --pattern <regex>     Allow write access to paths matching a regex pattern
+  -h, --help                  Show this help message and exit
+  --dir <path>                Allow read+write access to a specific directory and its children
+  --dir-readonly <path>       Allow read-only access to a specific directory and its children
+  --path <path>               Allow read+write access to an exact path (no children)
+  --path-readonly <path>      Allow read-only access to an exact path (no children)
+  --pattern <regex>           Allow read+write access to paths matching a regex pattern
+  --pattern-readonly <regex>  Allow read-only access to paths matching a regex pattern
+
+Tool-specific convenience flags:
+  --claude              Allow read+write access to ~/.claude.json and ~/.claude/
+  --docker              Allow write access to ~/.docker/buildx
+  --mise                Allow read access to all mise-managed tool installs
+  --npm                 Allow write access to ~/.npm
+  --pi                  Allow write access to ~/.pi
+  --pnpm                Allow write access to ~/Library/pnpm
+  --vim                 Allow read access to ~/.vimrc
+  --git-repo            Allow write access to the git repository root (detected via git rev-parse)
+  --jj-repo             Allow write access to the jj workspace root (and linked repo, if any)
 
 Examples:
   # Allow writing to specific directories
@@ -36,10 +51,12 @@ Examples:
   # Read-only execution (default)
   $(basename "$0") -- ls -la
 
-The following sensitive paths are blocked by default:
-  - ~/.aws
-  - ~/.kube
-  - ~/.ssh
+Files within the user's home directory are blocked by default.
+
+If a .sandboxrc file exists in the current working directory, it is read as
+additional sandbox arguments (appended after any CLI arguments). Blank lines
+and lines starting with # are ignored. Each line may contain one or more
+flags (e.g. "--dir ~/.config" or "--pattern '^/Volumes/dev/'").
 
 If a .sandboxignore file exists in the current working directory, it is read to
 deny read access to additional paths. The file follows gitignore glob syntax:
@@ -202,11 +219,26 @@ emit_sandboxignore_rules() {
     done
 }
 
-# Parse arguments to separate paths and command
-PATHS=()
-PATTERNS=()
+# Resolve a path argument to an absolute path and print it.
+# $1 = the raw path value
+resolve_dir() {
+    local arg="$1"
+    if [[ -d "$arg" ]]; then
+        cd "$arg" && pwd
+    elif [[ -f "$arg" ]]; then
+        echo "$(cd "$(dirname "$arg")" && pwd)/$(basename "$arg")"
+    elif [[ "$arg" == /* ]]; then
+        echo "$arg"
+    else
+        echo "$(pwd)/$arg"
+    fi
+}
+
+# Collect CLI option tokens (everything before --) and COMMAND_ARGS (everything after).
+# Also handle --help early since it exits immediately.
 COMMAND_ARGS=()
 SEPARATOR_FOUND=false
+cli_args=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -214,25 +246,73 @@ while [[ $# -gt 0 ]]; do
             usage
             exit 0
             ;;
+        --)
+            SEPARATOR_FOUND=true
+            shift
+            COMMAND_ARGS=("$@")
+            break
+            ;;
+        *)
+            cli_args+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# Collect .sandboxrc tokens, if the file exists.
+rc_args=()
+SANDBOXRC_FILE="$(pwd)/.sandboxrc"
+if [[ -f "$SANDBOXRC_FILE" ]]; then
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip blank lines and comments
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        # Expand ~ to $HOME, then word-split the line into tokens
+        line="${line//'~'/$HOME}"
+        read -ra tokens <<< "$line"
+        rc_args+=("${tokens[@]}")
+    done < "$SANDBOXRC_FILE"
+fi
+
+# Parse all option tokens — CLI args first, then rc args — through one shared loop.
+PATHS=()
+READONLY_PATHS=()
+LITERAL_PATHS=()
+READONLY_LITERAL_PATHS=()
+PATTERNS=()
+READONLY_PATTERNS=()
+set -- "${cli_args[@]+${cli_args[@]}}" "${rc_args[@]+${rc_args[@]}}"
+while [[ $# -gt 0 ]]; do
+    case "$1" in
         --dir)
             if [[ -z "${2-}" ]]; then
                 echo "Error: --dir requires a path." >&2
                 exit 1
             fi
-            # Resolve to absolute path
-            arg="$2"
-            if [[ -d "$arg" ]]; then
-                PATHS+=("$(cd "$arg" && pwd)")
-            elif [[ -f "$arg" ]]; then
-                # Support individual files
-                PATHS+=("$(cd "$(dirname "$arg")" && pwd)/$(basename "$arg")")
-            elif [[ "$arg" == /* ]]; then
-                # Absolute path that might not exist yet
-                PATHS+=("$arg")
-            else
-                # Relative path that might not exist yet
-                PATHS+=("$(pwd)/$arg")
+            PATHS+=("$(resolve_dir "$2")")
+            shift 2
+            ;;
+        --dir-readonly)
+            if [[ -z "${2-}" ]]; then
+                echo "Error: --dir-readonly requires a path." >&2
+                exit 1
             fi
+            READONLY_PATHS+=("$(resolve_dir "$2")")
+            shift 2
+            ;;
+        --path)
+            if [[ -z "${2-}" ]]; then
+                echo "Error: --path requires a path." >&2
+                exit 1
+            fi
+            LITERAL_PATHS+=("$(resolve_dir "$2")")
+            shift 2
+            ;;
+        --path-readonly)
+            if [[ -z "${2-}" ]]; then
+                echo "Error: --path-readonly requires a path." >&2
+                exit 1
+            fi
+            READONLY_LITERAL_PATHS+=("$(resolve_dir "$2")")
             shift 2
             ;;
         --pattern)
@@ -243,14 +323,65 @@ while [[ $# -gt 0 ]]; do
             PATTERNS+=("$2")
             shift 2
             ;;
-        --)
-            SEPARATOR_FOUND=true
+        --pattern-readonly)
+            if [[ -z "${2-}" ]]; then
+                echo "Error: --pattern-readonly requires a regex." >&2
+                exit 1
+            fi
+            READONLY_PATTERNS+=("$2")
+            shift 2
+            ;;
+        --claude)
+            PATHS+=("$HOME/.claude")
+            LITERAL_PATHS+=("$HOME/.claude.json")
             shift
-            COMMAND_ARGS=("$@")
-            break
+            ;;
+        --git-repo)
+            READONLY_LITERAL_PATHS+=("$HOME/.gitconfig")
+            READONLY_LITERAL_PATHS+=("$HOME/.gitignore")
+            if git_root=$(git rev-parse --show-toplevel 2>/dev/null); then
+                PATHS+=("$git_root")
+            fi
+            shift
+            ;;
+        --jj-repo)
+            if jj_root=$(jj workspace root 2>/dev/null); then
+                PATHS+=("$jj_root")
+                if [[ -f "$jj_root/.jj/repo" ]]; then
+                    linked_repo=$(cat "$jj_root/.jj/repo")
+                    PATHS+=("$(dirname "$(dirname "$linked_repo")")") 
+                fi
+            fi
+            shift
+            ;;
+        --pi)
+            PATHS+=("$HOME/.pi")
+            shift
+            ;;
+        --npm)
+            PATHS+=("$HOME/.npm")
+            shift
+            ;;
+        --pnpm)
+            PATHS+=("$HOME/Library/pnpm")
+            shift
+            ;;
+        --vim)
+            READONLY_LITERAL_PATHS+=("$HOME/.vimrc")
+            shift
+            ;;
+        --docker)
+            PATHS+=("$HOME/.docker/buildx")
+            shift
+            ;;
+        --mise)
+            # Allow read-only access to all mise-installed tools
+            mise_data_dir="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}"
+            READONLY_PATHS+=("$mise_data_dir")
+            shift
             ;;
         *)
-            echo "Error: Unknown argument '$1' before '--'." >&2
+            echo "Error: Unknown argument '$1'." >&2
             usage >&2
             exit 1
             ;;
@@ -276,6 +407,14 @@ SANDBOXIGNORE_FILE="$(pwd)/.sandboxignore"
 profile_source=$(
     cat "$CONFIG_TEMPLATE"
     echo ""
+    echo ";; Allow read access to PATH directories so executables can be found"
+    IFS=: read -ra path_dirs <<< "$PATH"
+    for path_dir in "${path_dirs[@]}"; do
+        # Resolve relative entries against CWD
+        [[ "$path_dir" != /* ]] && path_dir="$(pwd)/$path_dir"
+        echo "(allow file-read* (subpath \"$path_dir\"))"
+    done
+    echo ""
     echo ";; Allow writing to the user's temp directories"
     echo "(allow file-write* (subpath \"$(readlink -f "$TMPDIR")\"))"
     echo "(allow file-write* (subpath \"$(readlink -f "$HOME/Library/Caches")\"))"
@@ -286,15 +425,39 @@ profile_source=$(
         echo ";; --- END OF IGNORE RULES ---"
         echo ""
     fi
+    echo ""
+    echo ";; Deny reading file contents within the user's home directory (metadata is still allowed)"
+    echo "(deny file-read-data (subpath \"$HOME\"))"
+    echo ""
     echo ";; --- DYNAMIC RULES ---"
+    if [[ ${#READONLY_LITERAL_PATHS[@]} -gt 0 ]]; then
+        for path in "${READONLY_LITERAL_PATHS[@]}"; do
+            echo "(allow file-read-data (literal \"$path\"))"
+        done
+    fi
+    if [[ ${#READONLY_PATHS[@]} -gt 0 ]]; then
+        for dir in "${READONLY_PATHS[@]}"; do
+            echo "(allow file-read-data (subpath \"$dir\"))"
+        done
+    fi
+    if [[ ${#READONLY_PATTERNS[@]} -gt 0 ]]; then
+        for pattern in "${READONLY_PATTERNS[@]}"; do
+            echo "(allow file-read-data (regex #\"$pattern\"))"
+        done
+    fi
+    if [[ ${#LITERAL_PATHS[@]} -gt 0 ]]; then
+        for path in "${LITERAL_PATHS[@]}"; do
+            echo "(allow file-read-data file-write* (literal \"$path\"))"
+        done
+    fi
     if [[ ${#PATHS[@]} -gt 0 ]]; then
         for dir in "${PATHS[@]}"; do
-            echo "(allow file-write* (subpath \"$dir\"))"
+            echo "(allow file-read-data file-write* (subpath \"$dir\"))"
         done
     fi
     if [[ ${#PATTERNS[@]} -gt 0 ]]; then
         for pattern in "${PATTERNS[@]}"; do
-            echo "(allow file-write* (regex #\"$pattern\"))"
+            echo "(allow file-read-data file-write* (regex #\"$pattern\"))"
         done
     fi
     echo ";; --- END OF DYNAMIC RULES ---"
