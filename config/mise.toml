@@ -17,6 +17,7 @@ python = "3.12"
 rust = "latest"
 terraform = "latest"
 uv = "latest"
+"cargo:convfmt" = "latest"
 "github:oraios/serena" = { version = "latest", asset_pattern = "serena_agent-*-py3-none-any.whl" }
 "go:github.com/dolmen-go/docker-list-context" = "latest"
 "npm:ccusage" = "latest"
