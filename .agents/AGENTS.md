@@ -32,5 +32,6 @@ Before making any change, no matter how minor, always create a new VCS commit. S
 
 - Always use the `context7` tools for external library API reference
 - Always use the `grep` tool for searching within files (as opposed to the `grep` CLI command)
+- Always use your `edit` tool for editing files, unless the user has specifically requested an IDE diff
 
 ---

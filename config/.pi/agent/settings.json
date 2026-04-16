@@ -1,6 +1,6 @@
 {
   "packages": [
-    "npm:@pborck/pi-de",
+    "npm:@lukebarton/pi-de-claude",
     "npm:@tmustier/pi-usage-extension",
     "npm:lsp-pi",
     "npm:pi-ask-tool-extension",
