@@ -1,0 +1,1 @@
+source <(colima completion zsh)
