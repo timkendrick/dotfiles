@@ -3,6 +3,10 @@ set relativenumber
 " Show current line number
 set number
 
+" Enable incremental search and highlight search results
+set incsearch
+set hlsearch
+
 " Set modal cursor for xterm-compatible terminals
 if &term =~ '^xterm'
     " 0 or 1 -> blinking block
