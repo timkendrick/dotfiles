@@ -2,17 +2,6 @@ export PI_DE_CLAUDE_USE_DIFF_EDITOR=false
 export PI_OFFLINE=true
 export PI_DEFAULT_TOOLS="read,bash,edit,write,grep,find,ls"
 
-alias 'pi-sandbox'="sandbox \
-  --dir . \
-  --dir ~/.pi \
-  --dir ~/.npm \
-  --dir ~/Library/pnpm \
-  --dir ~/.docker/buildx \
-  $(git_root=$(git rev-parse --show-cdup 2>/dev/null) && echo --dir "$(cd "$git_root" && pwd)" || true) \
-  $(jj_root=$(jj workspace root 2>/dev/null) && { echo --dir $jj_root; if [ -f $jj_root/.jj/repo ]; then echo --dir $(dirname $(dirname $(cat $jj_root/.jj/repo))); fi; } | tr "\n" " " || true) \
-  -- \
-  pi"
-
 pi-install() {
   local pkg="$1"
   mise use --global "$pkg" \
