@@ -7,9 +7,6 @@
 [submodule "dependencies/CamelCaseMotion"]
 	path = dependencies/CamelCaseMotion
 	url = https://github.com/bkad/CamelCaseMotion.git
-[submodule "dependencies/pi-ask-tool"]
-	path = dependencies/pi-ask-tool
-	url = https://github.com/devkade/pi-ask-tool.git
 [submodule "dependencies/pi-de-claude"]
 	path = dependencies/pi-de-claude
 	url = https://github.com/timkendrick/pi-de-claude.git
