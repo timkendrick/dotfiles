@@ -32,6 +32,7 @@ Options:
 
 Tool-specific convenience flags:
   --bash                Allow read-only access to ~/.bashrc, ~/.profile and ~/.bash_profile
+  --cargo               Allow read-only access to ~/.cargo and read+write access to ~/.cargo/registry and ~/.cargo/git
   --claude              Allow read+write access to ~/.claude.json and ~/.claude/
   --docker              Allow read access to ~/.docker and write access to ~/.docker/buildx
   --git                 Allow read access to git config files in the home directory
@@ -342,6 +343,12 @@ while [[ $# -gt 0 ]]; do
             READONLY_LITERAL_PATHS+=("$HOME/.bashrc")
             READONLY_LITERAL_PATHS+=("$HOME/.profile")
             READONLY_LITERAL_PATHS+=("$HOME/.bash_profile")
+            shift
+            ;;
+        --cargo)
+            READONLY_PATHS+=("$HOME/.cargo")
+            PATHS+=("$HOME/.cargo/registry")
+            PATHS+=("$HOME/.cargo/git")
             shift
             ;;
         --claude)

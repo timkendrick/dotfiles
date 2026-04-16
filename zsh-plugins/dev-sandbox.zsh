@@ -1,5 +1,6 @@
 alias 'dev-sandbox'='sandbox \
   --bash \
+  --cargo \
   --claude \
   --docker \
   --git \
