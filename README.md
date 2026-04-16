@@ -24,6 +24,12 @@ mkdir -p ~/.vim/pack
 ln -s ~/.config/dotfiles/vim-plugins ~/.vim/pack/dotfiles
 ```
 
+Install `pi` agent configuration:
+
+```bash
+for file in config/.pi/agent/*; do ln -s "$(realpath "$file")" ~/.pi/agent/"$(basename $file)"; done
+```
+
 Install global `AGENTS.md` guidelines for installed CLI agents:
 
 ```bash
