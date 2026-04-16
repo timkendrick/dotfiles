@@ -1,4 +1,5 @@
 export PI_DE_CLAUDE_USE_DIFF_EDITOR=false
+export PI_OFFLINE=true
 
 alias 'pi-sandbox'="sandbox \
   --dir . \
