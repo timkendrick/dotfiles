@@ -22,7 +22,7 @@ pi-install() {
       local backup=$(mktemp)
       cp "$settings" "$backup"
       trap "cat '$backup' > '$settings' && rm -f '$backup' || echo \"$backup\"" ERR
-      jq --arg pkg "$pkg" '.packages = (.packages + [$pkg] | unique | sort)' "$backup" > "$settings" && (rm -f "$backup" || echo "$backup")
+      jq --arg pkg "$pkg" '.packages = (.packages + [$pkg] | unique | sort)' "$backup" | perl -pe 'chomp if eof' > "$settings" && (rm -f "$backup" || echo "$backup")
       trap - ERR
     }
 }
