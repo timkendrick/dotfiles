@@ -1,5 +1,6 @@
 [tools]
 node = "22"
+pipx = "latest"
 python = "3.12"
 uv = "latest"
 "npm:@anthropic-ai/claude-code" = "latest"
