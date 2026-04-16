@@ -30,6 +30,6 @@ FPATH="$ZSH_COMPLETIONS_PATH:$FPATH"
 autoload -Uz compinit && compinit
 
 # Load shell plugins
-for plugin in "$ZSH_PLUGINS_PATH"/*; do
+for plugin in "$ZSH_PLUGINS_PATH"/*.zsh(D); do
     source "$plugin"
 done
