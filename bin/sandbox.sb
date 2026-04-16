@@ -67,4 +67,4 @@
 (allow file-read-metadata (require-all (subpath (param "HOME")) (vnode-type DIRECTORY)))
 
 ;; Allow read/write access to the user's cache directory
-(allow file-read* file-write* (literal (string-append (param "HOME") "/Library/Caches")))
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/Library/Caches")))
