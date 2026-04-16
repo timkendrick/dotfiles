@@ -8,9 +8,9 @@ Available tools:
 - grep: Search file contents for patterns (respects .gitignore)
 - find: Find files by glob pattern (respects .gitignore)
 - ls: List directory contents
+- mcp: MCP gateway - connect to MCP servers and call their tools
 - context7_resolve-library-id: Resolves a package/product name to a Context7-compatible library ID and returns matching...
 - context7_query-docs: Retrieves and queries up-to-date documentation and code examples from Context7 for any programming...
-- mcp: MCP gateway - connect to MCP servers and call their tools
 
 In addition to the tools above, you may have access to other custom tools depending on the project.
 
