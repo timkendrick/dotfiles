@@ -20,7 +20,6 @@ terraform = "latest"
 uv = "latest"
 "cargo:convfmt" = "latest"
 "go:github.com/dolmen-go/docker-list-context" = "latest"
-"npm:ccusage" = "latest"
 
 [settings]
 experimental = true
