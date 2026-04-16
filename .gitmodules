@@ -1,9 +1,9 @@
-[submodule "nx-completion"]
+[submodule "dependencies/nx-completion"]
 	path = dependencies/nx-completion
 	url = https://github.com/jscutlery/nx-completion.git
 [submodule "dependencies/vim-surround"]
 	path = dependencies/vim-surround
-	url = https://tpope.io/vim/surround.git
+	url = https://github.com/tpope/vim-surround.git
 [submodule "dependencies/CamelCaseMotion"]
 	path = dependencies/CamelCaseMotion
 	url = https://github.com/bkad/CamelCaseMotion.git
