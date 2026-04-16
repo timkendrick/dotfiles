@@ -4,6 +4,7 @@ alias 'dev-sandbox'='sandbox \
   --claude \
   --docker \
   --git \
+  --helm \
   --jj \
   --keychain \
   --kubectl \

@@ -36,6 +36,7 @@ Tool-specific convenience flags:
   --claude              Allow read+write access to ~/.claude.json and ~/.claude/
   --docker              Allow read access to ~/.docker and write access to ~/.docker/buildx
   --git                 Allow read access to git config files in the home directory
+  --helm                Allow read-only access to helm config files in ~/Library/Preferences/helm
   --jj                  Allow read access to jj config files in the home directory
   --keychain            Allow read access to the macOS keychain (via the security CLI)
   --kubectl             Allow read access to ~/.kube/config
@@ -360,6 +361,10 @@ while [[ $# -gt 0 ]]; do
         --git)
             READONLY_PATHS+=("$HOME/.config/git")
             READONLY_LITERAL_PATHS+=("$HOME/.gitconfig")
+            shift
+            ;;
+        --helm)
+            READONLY_PATHS+=("$HOME/Library/Preferences/helm")
             shift
             ;;
         --jj)
