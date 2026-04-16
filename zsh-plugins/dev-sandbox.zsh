@@ -11,6 +11,7 @@ alias 'dev-sandbox'='sandbox \
   --mise \
   --node \
   --npm \
+  --nx \
   --pi \
   --plannotator \
   --pnpm \

@@ -43,6 +43,7 @@ Tool-specific convenience flags:
   --mise                Allow read-only access to all mise-managed tool installs
   --node                Allow read+write access to ~/.cache/node/corepack
   --npm                 Allow read+write access to ~/.npm
+  --nx                  Allow read-only access to ~/.config/nx
   --pi                  Allow read+write access to ~/.pi
   --plannotator         Allow read+write access to ~/.plannotator
   --pnpm                Allow read+write access to ~/Library/pnpm
@@ -410,6 +411,10 @@ while [[ $# -gt 0 ]]; do
         --npm)
             PATHS+=("$HOME/.npm")
             READONLY_LITERAL_PATHS+=("$HOME/.npmrc")
+            shift
+            ;;
+        --nx)
+            READONLY_PATHS+=("$HOME/.config/nx")
             shift
             ;;
         --pnpm)
