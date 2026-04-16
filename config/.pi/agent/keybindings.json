@@ -1,9 +1,14 @@
 {
   "tui.input.copy": [],
+  "app.editor.external": [
+    "ctrl+x"
+  ],
   "app.interrupt": [
     "ctrl+c"
   ],
+  "tui.editor.cursorLineEnd": [],
+  "tui.editor.deleteToLineStart": [],
   "app.clear": [
-    "ctrl+shift+k"
+    "ctrl+u"
   ]
 }
