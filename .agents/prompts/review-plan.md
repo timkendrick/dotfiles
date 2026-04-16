@@ -5,11 +5,13 @@ allowed-tools: Bash(plannotator:*), Bash(jq:*)
 
 # Review user-provided plan
 
-Run the following shell command:
+Run the following shell command and await the result:
 
 ```shell
 jq --raw-input --slurp '{ tool_input: { plan: . } }' "$1" | plannotator
 ```
+
+> **Important:** Do *not* pass a timeout when running this command. The command should be allowed to complete naturally regardless of how long it runs.
 
 ## Your task
 
