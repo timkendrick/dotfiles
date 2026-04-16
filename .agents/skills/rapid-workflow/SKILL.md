@@ -9,7 +9,7 @@ description: Interactive workflow for planning and implementing changes. Always 
 1. **Research** – Based on the user's initial prompt, research relevant context within the codebase.
 2. **Ask** – Ask the user a long series of increasingly-specific questions using your `ask` tool to determine all implementation details.
 3. **Plan** – Use your `plan` skill to produce a comprehensive plan for the changes. Include all relevant research findings and any other potentially useful context that was uncovered during the research phase, as well as a transcript of the user's questionnaire and responses. Await user feedback on the plan, iterating the plan until the user has explicitly confirmed that they are happy to move on to implementation.
-4. **Implement** – Implement the changes as instructed in the plan. Make sure to commit and check diagnostics before moving on.
+4. **Implement** – Implement the changes as instructed in the plan. Make sure to commit and check diagnostics before moving on. After completing each step of the implementation, update the task list in the plan file to reflect progress, and additionally update the relevant section of the plan to reflect reality, making sure to detail any any deviations from the plan, and any additional implementation details or relevant context not already outlined in the plan.
 5. **Diagnostics** – Use diagnostics tools to ensure that the changes have not introduced any new errors or warnings. Run lint/test commands and *make sure they pass* before considering the change implemented.
 
 At this point in the workflow, commit all changes in version control and pause, presenting the user with a comprehensive summary of all changes that have been implemented (see Phase 2).
