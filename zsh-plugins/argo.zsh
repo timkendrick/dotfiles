@@ -1,0 +1,1 @@
+source <(argo completion zsh)
