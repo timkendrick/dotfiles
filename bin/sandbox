@@ -31,6 +31,7 @@ Options:
   --pattern-readonly <regex>  Allow read-only access to paths matching a regex pattern
 
 Tool-specific convenience flags:
+  --bash                Allow read-only access to ~/.bashrc, ~/.profile and ~/.bash_profile
   --claude              Allow read+write access to ~/.claude.json and ~/.claude/
   --docker              Allow read access to ~/.docker and write access to ~/.docker/buildx
   --git                 Allow read access to git config files in the home directory
@@ -334,6 +335,12 @@ while [[ $# -gt 0 ]]; do
             fi
             READONLY_PATTERNS+=("$2")
             shift 2
+            ;;
+        --bash)
+            READONLY_LITERAL_PATHS+=("$HOME/.bashrc")
+            READONLY_LITERAL_PATHS+=("$HOME/.profile")
+            READONLY_LITERAL_PATHS+=("$HOME/.bash_profile")
+            shift
             ;;
         --claude)
             PATHS+=("$HOME/.claude")
