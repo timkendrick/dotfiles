@@ -355,7 +355,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --jj)
-            READONLY_LITERAL_PATHS+=("$HOME/.config/jj")
+            READONLY_PATHS+=("$HOME/.config/jj")
             shift
             ;;
         --keychain)
