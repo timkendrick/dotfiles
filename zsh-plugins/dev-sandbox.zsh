@@ -9,4 +9,5 @@ alias 'dev-sandbox'='sandbox \
   --vim \
   --git-repo \
   --jj-repo \
+  --dir ~/.config/dotfiles \
   '
