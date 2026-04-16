@@ -384,6 +384,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --docker)
+            READONLY_PATHS+=("$HOME/.docker")
             PATHS+=("$HOME/.docker/buildx")
             shift
             ;;
