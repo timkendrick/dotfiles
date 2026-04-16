@@ -16,5 +16,5 @@ alias 'dev-sandbox'='sandbox \
   --zsh \
   --git-repo \
   --jj-repo \
-  --dir ~/.config/dotfiles \
+  --dir-readonly ~/.config/dotfiles \
   --dir .'
