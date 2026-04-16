@@ -3,6 +3,7 @@
     "npm:@tmustier/pi-usage-extension",
     "npm:lsp-pi",
     "npm:pi-ask-tool-extension",
+    "npm:pi-caffeinate",
     "npm:pi-mcp-adapter",
     "npm:pi-md-export",
     "npm:pi-powerline-footer",

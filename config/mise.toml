@@ -39,6 +39,7 @@ watchexec = "latest"
 "npm:jscpd" = "latest"
 "npm:@biomejs/biome" = "latest"
 "npm:knip" = "latest"
+"npm:pi-caffeinate" = "latest"
 
 [settings]
 experimental = true
