@@ -35,6 +35,6 @@ scripts/link-config-dir config/.pi/agent ~/.pi/agent
 Register `claude` agent configuration:
 
 ```bash
-scripts/link-config-dir .agents ~/.claude
+scripts/link-config-dir .agents ~/.claude --rename 's/^AGENTS\.md$/CLAUDE.md/' --rename 's/^prompts$/commands/'
 scripts/merge-json ~/.claude.json < config/.claude/mcp.json
 ```
