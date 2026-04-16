@@ -34,6 +34,7 @@ Tool-specific convenience flags:
   --claude              Allow read+write access to ~/.claude.json and ~/.claude/
   --docker              Allow write access to ~/.docker/buildx
   --mise                Allow read access to all mise-managed tool installs
+  --node                Allow write access to ~/.cache/node/corepack
   --npm                 Allow write access to ~/.npm
   --pi                  Allow write access to ~/.pi
   --plannotator         Allow write access to ~/.plannotator
@@ -363,12 +364,19 @@ while [[ $# -gt 0 ]]; do
             PATHS+=("$HOME/.plannotator")
             shift
             ;;
+        --node)
+            PATHS+=("$HOME/.cache/node/corepack")
+            shift
+            ;;
         --npm)
             PATHS+=("$HOME/.npm")
+            READONLY_LITERAL_PATHS+=("$HOME/.npmrc")
             shift
             ;;
         --pnpm)
             PATHS+=("$HOME/Library/pnpm")
+            READONLY_PATHS+=("$HOME/Library/Preferences/pnpm")
+            READONLY_LITERAL_PATHS+=("$HOME/.npmrc")
             shift
             ;;
         --vim)
