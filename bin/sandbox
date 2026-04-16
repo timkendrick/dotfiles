@@ -40,8 +40,166 @@ The following sensitive paths are blocked by default:
   - ~/.aws
   - ~/.kube
   - ~/.ssh
-  - All paths ending with .env, .key, .pem, .crt, .csr
+
+If a .sandboxignore file exists in the current working directory, it is read to
+deny read access to additional paths. The file follows gitignore glob syntax:
+  - Blank lines and lines starting with # are ignored
+  - Patterns without a / match files in any directory (e.g. *.log)
+  - Patterns containing a / are anchored to the directory containing .sandboxignore
+  - A trailing / restricts the match to directories
+  - Prefix ! to negate a rule (re-allow a path blocked by a prior rule)
+  - Glob specials: * matches within a path segment, ** matches across segments,
+    ? matches any single character, [abc] matches a character class
 EOF
+}
+
+# Convert a single gitignore-style glob pattern (already stripped of leading !
+# and trailing /) to an extended-regex string anchored to $base_dir.
+# $1 = base directory (absolute, no trailing slash)
+# $2 = the pattern
+# $3 = "dir" if the original pattern had a trailing slash (directory-only)
+# Prints the regex, or nothing if the pattern should be skipped.
+gitignore_pattern_to_regex() {
+    local base="$1"
+    local pat="$2"
+    local dir_only="${3:-}"
+
+    # Escape the base path for use in a regex
+    local escaped_base
+    escaped_base="$(printf '%s' "$base" | sed 's/[.[\*^$()+{}|?]/\\&/g')"
+
+    # Determine if the pattern is anchored (contains a / somewhere other than
+    # at the very end, which has already been stripped, or starts with /)
+    local anchored=false
+    if [[ "$pat" == */* ]]; then
+        anchored=true
+    fi
+
+    # Strip a leading slash (it just means "anchored to base", which we handle)
+    pat="${pat#/}"
+
+    # Translate the glob pattern to a regex fragment.
+    # Process character by character so we can handle ** correctly.
+    local regex_fragment=""
+    local i=0
+    local len="${#pat}"
+    while (( i < len )); do
+        local ch="${pat:$i:1}"
+        case "$ch" in
+            '*')
+                if [[ "${pat:$i:2}" == "**" ]]; then
+                    # ** matches anything including path separators
+                    regex_fragment+=".*"
+                    (( i += 2 )) || true
+                    # Consume a surrounding / so **/foo and foo/**/bar work
+                    # naturally: eat a leading / after ** when present
+                    if [[ "${pat:$i:1}" == "/" ]]; then
+                        regex_fragment+="(.*/)?"
+                        (( i += 1 )) || true
+                    fi
+                    continue
+                else
+                    # * matches anything except /
+                    regex_fragment+="[^/]*"
+                fi
+                ;;
+            '?')
+                regex_fragment+="[^/]"
+                ;;
+            '.')
+                regex_fragment+="\."
+                ;;
+            '[')
+                # Pass character classes through verbatim until the closing ]
+                local class="["
+                (( i += 1 )) || true
+                while (( i < len )) && [[ "${pat:$i:1}" != "]" ]]; do
+                    class+="${pat:$i:1}"
+                    (( i += 1 )) || true
+                done
+                class+="]"
+                regex_fragment+="$class"
+                ;;
+            '+' | '^' | '$' | '{' | '}' | '(' | ')' | '|' | '\\')
+                regex_fragment+="\\$ch"
+                ;;
+            *)
+                regex_fragment+="$ch"
+                ;;
+        esac
+        (( i += 1 )) || true
+    done
+
+    local regex
+    if $anchored; then
+        # Anchored: pattern must match relative to $base
+        if [[ -n "$dir_only" ]]; then
+            # Must match a directory: path is either exactly this dir or a subpath
+            regex="^${escaped_base}/${regex_fragment}(/.*)?$"
+        else
+            regex="^${escaped_base}/${regex_fragment}(/.*)?$"
+        fi
+    else
+        # Unanchored: pattern matches a filename in any directory under $base,
+        # or $base itself
+        if [[ -n "$dir_only" ]]; then
+            regex="^${escaped_base}(/.*)/${regex_fragment}(/.*)?$"
+        else
+            regex="^${escaped_base}(/.*)?/${regex_fragment}(/.*)?$"
+        fi
+    fi
+
+    printf '%s' "$regex"
+}
+
+# Parse a .sandboxignore file and emit sandbox profile lines.
+# $1 = path to the .sandboxignore file
+# $2 = base directory (absolute, no trailing slash)
+emit_sandboxignore_rules() {
+    local file="$1"
+    local base="$2"
+
+    local deny_rules=()
+    local allow_rules=()
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip blank lines and comments
+        [[ -z "$line" || "$line" == \#* ]] && continue
+
+        local negated=false
+        if [[ "$line" == \!* ]]; then
+            negated=true
+            line="${line:1}"
+        fi
+
+        # Strip trailing /  (record whether it was present)
+        local dir_only=""
+        if [[ "$line" == */ ]]; then
+            dir_only="dir"
+            line="${line%/}"
+        fi
+
+        # Skip empty pattern after stripping
+        [[ -z "$line" ]] && continue
+
+        local regex
+        regex="$(gitignore_pattern_to_regex "$base" "$line" "$dir_only")"
+        [[ -z "$regex" ]] && continue
+
+        if $negated; then
+            allow_rules+=("(allow file-read* (regex #\"${regex}\"))")
+        else
+            deny_rules+=("(deny file-read* (regex #\"${regex}\"))")
+        fi
+    done < "$file"
+
+    # Emit deny rules first, then allow (negation) rules so that negations win
+    for rule in "${deny_rules[@]+"${deny_rules[@]}"}"; do
+        echo "$rule"
+    done
+    for rule in "${allow_rules[@]+"${allow_rules[@]}"}"; do
+        echo "$rule"
+    done
 }
 
 # Parse arguments to separate paths and command
@@ -111,6 +269,9 @@ if [[ ${#COMMAND_ARGS[@]} -eq 0 ]]; then
     exit 1
 fi
 
+# Load .sandboxignore from the current working directory, if present
+SANDBOXIGNORE_FILE="$(pwd)/.sandboxignore"
+
 # Create the sandbox profile (template + appended rules)
 profile_source=$(
     cat "$CONFIG_TEMPLATE"
@@ -119,7 +280,13 @@ profile_source=$(
     echo "(allow file-write* (subpath \"$(readlink -f "$TMPDIR")\"))"
     echo "(allow file-write* (subpath \"$(readlink -f "$HOME/Library/Caches")\"))"
     echo ""
-    echo ";; --- DYNAMICALLY APPENDED WRITE RULES ---"
+    if [[ -f "$SANDBOXIGNORE_FILE" ]]; then
+        echo ";; --- IGNORE RULES ---"
+        emit_sandboxignore_rules "$SANDBOXIGNORE_FILE" "$(pwd)"
+        echo ";; --- END OF IGNORE RULES ---"
+        echo ""
+    fi
+    echo ";; --- DYNAMIC RULES ---"
     if [[ ${#PATHS[@]} -gt 0 ]]; then
         for dir in "${PATHS[@]}"; do
             echo "(allow file-write* (subpath \"$dir\"))"
@@ -130,7 +297,13 @@ profile_source=$(
             echo "(allow file-write* (regex #\"$pattern\"))"
         done
     fi
+    echo ";; --- END OF DYNAMIC RULES ---"
 )
+
+# If the SANDBOX_DEBUG environment variable is set, print the generated profile for debugging
+if [[ -n "${SANDBOX_DEBUG-}" ]]; then
+    echo "$profile_source" >&2
+fi
 
 # Execute the command in the sandbox environment
 exec sandbox-exec -p "$profile_source" "${COMMAND_ARGS[@]}"

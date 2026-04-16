@@ -1,1 +1,1 @@
-alias 'pi-sandbox'="sandbox --dir . --dir ~/.pi --dir ~/.npm --dir ~/Library/pnpm/store -- pi"
+alias 'pi-sandbox'="sandbox --dir . --dir ~/.pi --dir ~/.npm --dir ~/Library/pnpm --dir ~/.docker/buildx -- pi"

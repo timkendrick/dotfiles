@@ -1,9 +1,9 @@
-(version 1)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; macOS Sandbox Configuration Template
 ;; Reference: sandbox-exec(1)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(version 1)
 
 ;; Default Denial
 (allow default)
@@ -43,8 +43,7 @@
 (deny file-read*
        (subpath "~/.aws")
        (subpath "~/.kube")
-       (subpath "~/.ssh")
-       (regex #"\.(crt|csr|env|key|pem)$"))
+       (subpath "~/.ssh"))
 
 ;; Allow write access to temporary directories
 (allow file-write* 
