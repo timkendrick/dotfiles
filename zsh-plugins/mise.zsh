@@ -11,12 +11,20 @@ mise-link-global-npm-packages() {
     local pkg_name="$(<<< "$pkg" sed 's/^npm://')"
     # Library packages need to be linked into the global node_modules directory
     local lib_path="$(mise where node)/lib/node_modules/$pkg_name"
+    local pkg_path="$pkg_dir/lib/node_modules/$pkg_name"
+    local existing_link_target
+    if [ -L "$lib_path" ]; then
+      existing_link_target="$(readlink "$lib_path")"
+    fi
+    if [ -n "$existing_link_target" ] && [ "$existing_link_target" != "$pkg_path" ]; then
+      echo "Unlinking: $lib_path > $existing_link_target"
+      rm "$lib_path"
+    fi
     if [ -d "$lib_path" ]; then
       echo "Linked: $pkg"
       continue
     else
       echo "Linking $pkg..."
-      local pkg_path="$pkg_dir/lib/node_modules/$pkg_name"
       mkdir -p "$(dirname "$lib_path")"
       ln -s "$pkg_path" "$lib_path"
       echo "Linked: $lib_path > $pkg_path"
