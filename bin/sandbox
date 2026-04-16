@@ -364,7 +364,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --git-repo)
             if git_root=$(git rev-parse --show-toplevel 2>/dev/null); then
-                PATHS+=("$git_root")
+                PATHS+=("$(realpath "$git_root")")
             fi
             shift
             ;;
@@ -373,7 +373,7 @@ while [[ $# -gt 0 ]]; do
                 PATHS+=("$jj_root")
                 if [[ -f "$jj_root/.jj/repo" ]]; then
                     linked_repo=$(cat "$jj_root/.jj/repo")
-                    PATHS+=("$(dirname "$(dirname "$linked_repo")")") 
+                    PATHS+=("$(realpath "$(dirname "$(dirname "$linked_repo")")")") 
                 fi
             fi
             shift
