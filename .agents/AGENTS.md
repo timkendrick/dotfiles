@@ -26,7 +26,11 @@ Whenever the user asks you to research a topic, don't make educated guesses; alw
 
 ## Version control
 
-Before making any change, no matter how minor, always create a new VCS commit. Similarly, whenever you make any incremental progress, no matter how small, create a new commit.
+Before making any change, no matter how minor, always create a new VCS 'checkpoint' commit. Similarly, whenever you make any incremental progress, no matter how small, create a new commit.
+
+### Commit message guidelines
+
+Don't focus on the low-level changes to individual files (this can be trivially determined by inspecting the commit contents), instead describe the updated high-level behavior resulting from the commit, and (if relevant) the motivation for the commit.
 
 ## Tool calling
 
