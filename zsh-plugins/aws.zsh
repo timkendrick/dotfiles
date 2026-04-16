@@ -1,3 +1,6 @@
+# Activate AWS CLI completions
+complete -C "$(which aws_completer)" aws
+
 # Login to AWS account via SSO and set environment variables
 alias aws-session='aws sso login && eval $(aws configure export-credentials --format env)'
 
