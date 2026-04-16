@@ -1,5 +1,9 @@
 {
-  "interrupt": ["ctrl+c"],
-  "clear": ["ctrl+shift+k"],
-  "copy": []
+  "tui.input.copy": [],
+  "app.interrupt": [
+    "ctrl+c"
+  ],
+  "app.clear": [
+    "ctrl+shift+k"
+  ]
 }
