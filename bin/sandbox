@@ -432,6 +432,8 @@ while [[ $# -gt 0 ]]; do
             READONLY_LITERAL_PATHS+=("$HOME/.zshenv")
             READONLY_LITERAL_PATHS+=("$HOME/.zshrc")
             READONLY_LITERAL_PATHS+=("$HOME/.zprofile")
+            READONLY_LITERAL_PATHS+=("$HOME/.zsh_history")
+            PATHS+=("$HOME/.zsh_sessions")
             shift
             ;;
         --docker)
