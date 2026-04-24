@@ -15,6 +15,7 @@ alias 'dev-sandbox'='sandbox \
   --pi \
   --plannotator \
   --pnpm \
+  --rustup \
   --vim \
   --zsh \
   --git-repo \

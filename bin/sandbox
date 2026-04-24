@@ -47,6 +47,7 @@ Tool-specific convenience flags:
   --pi                  Allow read+write access to ~/.pi
   --plannotator         Allow read+write access to ~/.plannotator
   --pnpm                Allow read+write access to ~/Library/pnpm
+  --rustup              Allow read access to ~/.rustup
   --vim                 Allow read-only access to ~/.vimrc and ~/.vim
   --zsh                 Allow read-only access to ~/.zshenv, ~/.zshrc, and ~/.zprofile
   --git-repo            Allow read+write access to the git repository root (detected via git rev-parse)
@@ -421,6 +422,10 @@ while [[ $# -gt 0 ]]; do
             PATHS+=("$HOME/Library/pnpm")
             READONLY_PATHS+=("$HOME/Library/Preferences/pnpm")
             READONLY_LITERAL_PATHS+=("$HOME/.npmrc")
+            shift
+            ;;
+        --rustup)
+            READONLY_PATHS+=("$HOME/.rustup")
             shift
             ;;
         --vim)
