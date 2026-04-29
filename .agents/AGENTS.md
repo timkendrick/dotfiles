@@ -16,6 +16,8 @@ Do not perform any actions without having been instructed by the user, either di
 
 **IMPORTANT:** Make sure you read and thoroughly understand all code style guidelines in `./rules/` before making *any* code changes
 
+Type safety is critical: it is *always* better to write verbose code that spells out all cases than to introduce type casts, type assertions, etc. If you reach a point where you think this might be required, **STOP** and ask for guidance.
+
 Use diagnostics tools after each code change to confirm any errors or warnings introduced by the changes. 
 
 Unless instructed otherwise by the user, don't maintain backwards compatibility. If you're concerned about backwards compatibility, ask the user. Never assume you need to be backwards compatible.
