@@ -8,4 +8,4 @@ set -euo pipefail
 REVISION="${1:-HEAD}"
 
 # Get the name of the revision
-git name-rev --name-only "$REVISION"
+git rev-parse --abbrev-ref "$REVISION"
