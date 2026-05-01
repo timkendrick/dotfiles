@@ -371,6 +371,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --jj)
             READONLY_PATHS+=("$HOME/.config/jj")
+            PATHS+=("$HOME/.config/jj/repos")
             shift
             ;;
         --keychain)
