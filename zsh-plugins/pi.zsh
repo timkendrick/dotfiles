@@ -3,20 +3,77 @@ export PI_OFFLINE=true
 export PI_DEFAULT_TOOLS="read,bash,edit,write,grep,find,ls"
 
 pi-install() {
-  local pkg="$1"
-  mise use --global "$pkg" \
-    && mise-link-global-npm-packages "$pkg" \
-    && {
-      local settings=~/.pi/agent/settings.json
-      local backup=$(mktemp)
-      cp "$settings" "$backup"
-      trap "cat '$backup' > '$settings' && rm -f '$backup' || echo \"$backup\"" ERR
-      jq --arg pkg "$pkg" '.packages = (.packages + [$pkg] | unique | sort)' "$backup" | perl -pe 'chomp if eof' > "$settings" && (rm -f "$backup" || echo "$backup")
-      trap - ERR
-    }
+  local pkgs=("$@")
+  local PACKAGE_ROOT="${0:A:h}"
+  local CONFIG_PATH="$PACKAGE_ROOT/config/pi/settings.json"
+  local USER_CONFIG_PATH="$HOME/.pi/agent/settings.json"
+
+  # If no packages specified, install all packages from preset configuration
+  if [[ ${#pkgs[@]} -eq 0 ]]; then
+    local packages=($(jq -r '.packages[]' "$CONFIG_PATH"))
+  else
+    local packages=("${pkgs[@]}")
+  fi
+
+  # Update provided pi agent settings.json path to add provided packages
+  # The resulting packages list is deduplicated and alphabetically sorted
+  # Usage: _pi_settings_add_packages <settings_path> <pkg1> <pkg2> ...
+  _pi_settings_add_packages() {
+    local settings_path="$1"
+    shift
+    echo "Adding $# package(s) to $settings_path…" >&2
+    local pkgs_json=$(printf '%s\n' "$@" | jq -R . | jq -s .)
+    local backup=$(mktemp)
+    cp "$settings_path" "$backup"
+    trap "cat '$backup' > '$settings_path' && rm -f '$backup' || echo \"$backup\"" ERR
+    jq --argjson pkgs "$pkgs_json" '.packages = (.packages + $pkgs | unique | sort)' "$backup" | perl -pe 'chomp if eof' > "$settings_path" && (rm -f "$backup" || echo "$backup")
+    trap - ERR
+  }
+
+  mise use --global "${packages[@]}" && mise-link-global-npm-packages "${packages[@]}" && {
+    # Update user settings and (optionally) configuration presets to reflect the added packages
+    local config_files=()
+    config_files+=("$USER_CONFIG_PATH")
+    [[ ${#pkgs[@]} -gt 0 ]] && config_files+=("$CONFIG_PATH")
+    for config in "${config_files[@]}"; do
+      _pi_settings_add_packages "$config" "${packages[@]}" || return
+    done
+  }
 }
 
 pi-uninstall() {
-  local pkg="$1"
-  (mise unuse --global "$pkg" && mise-unlink-global-npm-packages "$pkg"); pi uninstall "$pkg"
+  local pkgs=("$@")
+  local PACKAGE_ROOT="${0:A:h}"
+  local CONFIG_PATH="$PACKAGE_ROOT/config/pi/settings.json"
+
+  # If no packages specified, exit with error
+  if [[ ${#pkgs[@]} -eq 0 ]]; then
+    echo "Error: No packages specified" >&2
+    return 1
+  fi
+
+  # Update provided pi agent settings.json path to remove provided packages
+  # The resulting packages list is deduplicated and alphabetically sorted
+  # Usage: _pi_settings_remove_packages <settings_path> <pkg1> <pkg2> ...
+  _pi_settings_remove_packages() {
+    local settings_path="$1"
+    shift
+    echo "Removing $# package(s) from $settings_path…" >&2
+    local pkgs_json=$(printf '%s\n' "$@" | jq -R . | jq -s .)
+    local backup=$(mktemp)
+    cp "$settings_path" "$backup"
+    trap "cat '$backup' > '$settings_path' && rm -f '$backup' || echo \"$backup\"" ERR
+    jq --argjson pkgs "$pkgs_json" '.packages = (.packages | map(select(. as $p | $pkgs | index($p) | not)))' "$backup" | perl -pe 'chomp if eof' > "$settings_path" && (rm -f "$backup" || echo "$backup")
+    trap - ERR
+  }
+
+  mise unuse --global "${pkgs[@]}" && mise-unlink-global-npm-packages "${pkgs[@]}" && {
+    # Update user settings and configuration presets to reflect the removed packages
+    local config_files=()
+    config_files+=("$USER_CONFIG_PATH")
+    config_files+=("$CONFIG_PATH")
+    for config in "${config_files[@]}"; do
+      _pi_settings_remove_packages "$config" "${pkgs[@]}" || return
+    done
+  }
 }
