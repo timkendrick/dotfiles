@@ -262,7 +262,7 @@ export interface BranchGraphNode
   extends Schema.Schema.Type<typeof BranchGraphNodeNonRecursive>,
     Schema.Schema.Type<typeof BranchGraphNodeRecursive> {}
 
-interface BranchGraphNodeEncoded
+export interface BranchGraphNodeEncoded
   extends Schema.Schema.Encoded<typeof BranchGraphNodeNonRecursive>,
     Schema.Schema.Encoded<typeof BranchGraphNodeRecursive> {}
 
@@ -276,7 +276,8 @@ Key details:
 
 - The **exported type** is an `interface` that extends both the non-recursive and recursive type helpers — not a `type` alias. This is what breaks the circular inference.
 - The `satisfies …Schema` on the schema value proves that the hand-written interfaces are consistent with the actual schema definition.
-- The `…NonRecursive`, `…Recursive` and `…Encoded` intermediate schemas/interfaces are **not exported** — they are internal implementation details that only exist to satisfy the type checker.
+- The `…NonRecursive` and `…Recursive` intermediate schemas are **not exported** — they are internal implementation details that only exist to satisfy the type checker.
+- The `…Encoded` interface is exported so that generated type definitions for `…Schema` can reference it.
 - The `…NonRecursive` struct must be declared for consistency, even if there are no non-recursive fields (an empty struct is valid).
 
 ### Recursive Union
@@ -301,7 +302,7 @@ export const GraphNode = Schema.Union(
 
 export type GraphNode = LeafGraphNode | BranchGraphNode;
 
-type GraphNodeEncoded =
+export type GraphNodeEncoded =
   | Schema.Schema.Encoded<LeafGraphNodeSchema>
   | Schema.Schema.Encoded<BranchGraphNodeSchema>;
 
@@ -388,7 +389,7 @@ const BranchGraphNodeRecursive = Schema.Struct({
 export interface BranchGraphNode
   extends Schema.Schema.Type<typeof BranchGraphNodeNonRecursive>,
     Schema.Schema.Type<typeof BranchGraphNodeRecursive> {}
-interface BranchGraphNodeEncoded
+export interface BranchGraphNodeEncoded
   extends Schema.Schema.Encoded<typeof BranchGraphNodeNonRecursive>,
     Schema.Schema.Encoded<typeof BranchGraphNodeRecursive> {}
 
@@ -410,7 +411,7 @@ export const GraphNode = Schema.Union(
 
 export type GraphNode = LeafGraphNode | BranchGraphNode;
 
-type GraphNodeEncoded =
+export type GraphNodeEncoded =
   | Schema.Schema.Encoded<LeafGraphNodeSchema>
   | Schema.Schema.Encoded<BranchGraphNodeSchema>;
 
@@ -432,7 +433,7 @@ export type GraphNodeSchema = Schema.Schema<GraphNode, GraphNodeEncoded>;
 - [ ] `const FooNonRecursive = Schema.Struct({ … })` *(not exported)*
 - [ ] `const FooRecursive = Schema.Struct({ … })` with annotated `Schema.suspend()` fields *(not exported)*
 - [ ] `export interface Foo extends Schema.Schema.Type<typeof FooNonRecursive>, Schema.Schema.Type<typeof FooRecursive> {}`
-- [ ] `interface FooEncoded extends Schema.Schema.Encoded<typeof FooNonRecursive>, Schema.Schema.Encoded<typeof FooRecursive> {}` *(not exported)*
+- [ ] `export interface FooEncoded extends Schema.Schema.Encoded<typeof FooNonRecursive>, Schema.Schema.Encoded<typeof FooRecursive> {}`
 - [ ] `export const Foo = Schema.Struct({ ...FooNonRecursive.fields, ...FooRecursive.fields }).annotations({ identifier: 'Foo' }) satisfies FooSchema`
 - [ ] `export type FooSchema = Schema.Schema<Foo, FooEncoded>`
 
@@ -440,7 +441,7 @@ export type GraphNodeSchema = Schema.Schema<GraphNode, GraphNodeEncoded>;
 
 - [ ] `export const RootUnion = Schema.Union(…).annotations({ identifier: 'RootUnion' }) satisfies RootUnionSchema`
 - [ ] `export type RootUnion = VariantA | VariantB | …`
-- [ ] `type RootUnionEncoded = Schema.Schema.Encoded<VariantASchema> | Schema.Schema.Encoded<VariantBSchema> | …` *(not exported)*
+- [ ] `export type RootUnionEncoded = Schema.Schema.Encoded<VariantASchema> | Schema.Schema.Encoded<VariantBSchema> | …`
 - [ ] `export type RootUnionSchema = Schema.Schema<RootUnion, RootUnionEncoded>`
 
 ### Branded primitive
