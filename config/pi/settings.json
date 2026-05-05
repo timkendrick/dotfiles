@@ -6,7 +6,6 @@
     "npm:pi-mcp-adapter",
     "npm:pi-md-export",
     "npm:pi-powerline-footer",
-    "npm:pi-skill-palette",
     "npm:pi-web-providers"
   ],
   "doubleEscapeAction": "tree",
