@@ -2,6 +2,7 @@
   "packages": [
     "npm:lsp-pi",
     "npm:pi-ask-tool-extension",
+    "npm:pi-btw",
     "npm:pi-caffeinate",
     "npm:pi-mcp-adapter",
     "npm:pi-md-export",
