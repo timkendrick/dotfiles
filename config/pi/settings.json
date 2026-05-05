@@ -1,5 +1,6 @@
 {
   "packages": [
+    "npm:@tintinweb/pi-subagents",
     "npm:lsp-pi",
     "npm:pi-ask-tool-extension",
     "npm:pi-btw",
