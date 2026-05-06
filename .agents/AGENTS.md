@@ -38,4 +38,10 @@ Don't focus on describing changes to individual files (this can be trivially det
 
 - Always use the `context7` tools for external library API reference
 
+## Sub-agents
+
+Spawn agents only for preliminary research tasks (e.g. exploring the codebase, checking documentation, locating changes in version control history) and for mechanical 'chore' tasks (e.g. fixing lint errors).
+
+Do NOT spawn agents for anything else (e.g. general implementation) unless explicitly instructed by the user.
+
 ---
