@@ -24,7 +24,7 @@ import type { ExtensionAPI } from '@mariozechner/pi-coding-agent';
 const PROVIDER_REPLACEMENTS: Record<string, Array<Replacement>> = {
 	'anthropic': [
 		{ pattern: /pi, a coding agent harness/, replacement: 'a coding agent harness' },
-		{ pattern: /\n\nPi documentation.*\n\n/s, replacement: "\n\n" },
+		{ pattern: /\n\nPi documentation.*?\n\n/s, replacement: "\n\n" },
 	],
 };
 
