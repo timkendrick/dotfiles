@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ $# -eq 0 ]; then
+  command_name="$(basename "$0")"
+  echo "Usage: $command_name <prompt...>" >&2
+  echo "  Converts a natural language prompt into a runnable shell command." >&2
+  echo "  All arguments are forwarded to the 'pi' agent harness." >&2
+  exit 1
+fi
+
+rules='
+- At the very end of your response, wrap the one-liner command in <command>...</command> tags. All other text must come before the opening <command> tag.
+- Spell out ALL CLI flags in full (e.g., prefer --recursive over -R, --verbose over -v). Never use abbreviated or short-form flags.
+- Do NOT include any comments in the output command.
+- If the task requires multiple commands, chain them with && or ; on a single line, or use backslash-escaped newlines.
+- Prefer standard, widely-available tools (GNU coreutils, etc.).
+- If the user asks about a 3rd-party CLI tool, use the context7 tools to look up its documentation before generating the command.'
+
+shell_name="$(basename "${SHELL:-bash}")"
+
+system_prompt="You are a shell command generator. The user's current shell is ${shell_name}. Given a natural language description, output exactly ONE runnable ${shell_name} one-liner command that accomplishes the task. Follow these rules strictly:$rules"
+
+raw_output="$(pi --print --no-builtin-tools --no-skills --no-prompt-templates --no-themes --no-context-files --system-prompt "$system_prompt" "$@")"
+
+# Extract content between the last <command>...</command> tags (supports multiline)
+clean="$(echo "$raw_output" | tr '\n' '\x00' | grep -o '<command>[^<]*</command>' | tail -1 | tr '\x00' '\n' | sed -e 's/^<command>//' -e 's/<\/command>$//' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | sed -e '/^$/d')"
+
+if [ -z "$clean" ]; then
+  echo "Error: no <command> tag found in output" >&2
+  exit 1
+fi
+
+echo "$clean"
