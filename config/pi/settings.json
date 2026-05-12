@@ -8,7 +8,8 @@
     "npm:pi-mcp-adapter",
     "npm:pi-md-export",
     "npm:pi-powerline-footer",
-    "npm:pi-web-providers"
+    "npm:pi-web-providers",
+    "npm:visual-explainer"
   ],
   "doubleEscapeAction": "tree",
   "hideThinkingBlock": false,

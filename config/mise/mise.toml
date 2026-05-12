@@ -42,6 +42,7 @@ watchexec = "latest"
 "npm:pi-web-providers" = "latest"
 "npm:typescript" = "latest"
 "npm:typescript-language-server" = "latest"
+"npm:visual-explainer" = "latest"
 
 [settings]
 experimental = true
