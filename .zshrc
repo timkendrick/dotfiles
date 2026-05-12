@@ -23,6 +23,7 @@ PACKAGE_ROOT="${0:a:h}"
 BIN_PATH="$PACKAGE_ROOT/bin"
 ZSH_ENV_PATH="$PACKAGE_ROOT/zsh-env"
 ZSH_PLUGINS_PATH="$PACKAGE_ROOT/zsh-plugins"
+ZSH_PROMPTS_PATH="$PACKAGE_ROOT/zsh-prompts"
 ZSH_COMPLETIONS_PATH="$PACKAGE_ROOT/zsh-completions"
 ZSH_SYNTAX_HIGHLIGHTING_PATH="$PACKAGE_ROOT/zsh-syntax-highlighting"
 
@@ -94,6 +95,33 @@ fi
 for plugin in "$ZSH_PLUGINS_PATH"/*.zsh(ND); do
     load_module "$plugin"
 done
+
+# Load custom shell prompt modifiers
+_PROMPT_BASE="${PROMPT}"
+_PROMPT_MODIFIER_FNS=()
+
+for prompt_plugin in "$ZSH_PROMPTS_PATH"/*.zsh(ND); do
+    load_module "$prompt_plugin"
+    # Derive function name: .00-kubectl.zsh -> _prompt_kubectl
+    local _fn_name="${${prompt_plugin:t}%.zsh}"
+    _fn_name="${_fn_name#.}"        # strip leading dot
+    _fn_name="${_fn_name#*([0-9])-}" # strip ordinal prefix (e.g. 00-)
+    _fn_name="_prompt_${_fn_name}"
+    _PROMPT_MODIFIER_FNS+=("$_fn_name")
+done
+
+_hook_precmd_prompt() {
+    local _p="$_PROMPT_BASE"
+    for _fn in "${_PROMPT_MODIFIER_FNS[@]}"; do
+        if (( $+functions[$_fn] )); then
+            _p="$("$_fn" "$_p")"
+        fi
+    done
+    PROMPT="$_p"
+}
+
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _hook_precmd_prompt
 
 # Enable custom syntax highlighting
 for plugin in "$ZSH_SYNTAX_HIGHLIGHTING_PATH"/*.zsh(ND); do
