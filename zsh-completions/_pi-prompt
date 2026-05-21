@@ -1,0 +1,19 @@
+#compdef pi-prompt
+#description run a named pi prompt with argument substitution
+
+# Session-scoped cache for extension paths (populated on first completion invocation)
+typeset -g _pi_prompt_extension_paths
+
+_pi-prompt() {
+  if [[ -z "$_pi_prompt_extension_paths" ]]; then
+    _pi_prompt_extension_paths="$(pi-list-extension-paths 2>/dev/null)"
+  fi
+
+  local -a prompts
+  prompts=(${(f)"$(PI_EXTENSION_PATHS="$_pi_prompt_extension_paths" pi-list-prompt-paths 2>/dev/null | while IFS= read -r path; do echo "/${path:t:r}"; done)"})
+
+  _arguments \
+    '1:prompt name:(${prompts[@]})'
+}
+
+_pi-prompt "$@"

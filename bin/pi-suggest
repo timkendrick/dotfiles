@@ -19,6 +19,9 @@ rules='
 
 shell_name="$(basename "${SHELL:-bash}")"
 
+# Clear the screen to prevent pi output from being mixed with previous terminal content
+printf '\033[2J'
+
 system_prompt="You are a shell command generator. The user's current shell is ${shell_name}. Given a natural language description, output exactly ONE runnable ${shell_name} one-liner command that accomplishes the task. Follow these rules strictly:$rules"
 
 raw_output="$(pi --print --no-builtin-tools --no-skills --no-prompt-templates --no-themes --no-context-files --system-prompt "$system_prompt" "$@")"
