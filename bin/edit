@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  command_name="$(basename "$0")"
+  cat <<EOF
+Usage: $command_name
+
+Edit a temporary file with the configured editor, writing the result to stdout.
+
+Options:
+  --allow-empty  Allow the editor to produce empty output (disables the empty-error behavior)
+
+The editor is determined by the following environment variables, in order of precedence:
+  EDIT_EDITOR  Editor command to use
+  VISUAL       Fallback editor if EDIT_EDITOR is unset
+  EDITOR       Fallback editor if VISUAL is unset (default: vi)
+
+The editor command is invoked as: <command> <file-path>
+EOF
+}
+
+log() {
+  command_name="$(basename "$0")"
+  echo "[$command_name] $*" >&2
+}
+
+# Parse command-line arguments
+allow_empty=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --allow-empty)
+      if $allow_empty; then
+        log "--allow-empty specified more than once"
+        usage >&2; exit 1
+      fi
+      allow_empty=true
+      ;;
+    *) usage >&2; exit 1 ;;
+  esac
+  shift
+done
+
+# Resolve the editor to use
+editor_command="${EDIT_EDITOR:-${VISUAL:-${EDITOR:-vi}}}"
+
+# Create a temporary file to store the editor contents
+tmp_file="$(mktemp)"
+
+# Open the file in the editor and wait for it to complete
+$editor_command "$tmp_file" </dev/tty >/dev/tty && {
+  # Validate the editor output, printing to stdout if non-empty
+  is_empty=false; [[ ! -s "$tmp_file" ]] && is_empty=true
+  is_error=false;
+  if $is_empty; then
+    if ! $allow_empty; then
+      log "Empty editor contents, aborting"
+      is_error=true
+    fi
+  else
+    # Output the contents of the file to stdout
+    cat "$tmp_file"
+  fi
+  # Clean up the temporary file
+  rm -f "$tmp_file"
+  # Exit with correct exit code
+  $is_error && exit 1 || exit 0
+} || {
+  exit_code=$?
+  log "Edit command failed (exit code $exit_code)"
+  log "Editor contents retained: $tmp_file"
+  exit $exit_code
+}
