@@ -1,6 +1,7 @@
 {
   "packages": [
     "npm:@tintinweb/pi-subagents",
+    "npm:@xl0/show-sysprompt",
     "npm:lsp-pi",
     "npm:pi-ask-tool-extension",
     "npm:pi-btw",
