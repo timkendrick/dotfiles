@@ -106,6 +106,7 @@ for prompt_plugin in "$ZSH_PROMPTS_PATH"/*.zsh(ND); do
     local _fn_name="${${prompt_plugin:t}%.zsh}"
     _fn_name="${_fn_name#.}"        # strip leading dot
     _fn_name="${_fn_name#*([0-9])-}" # strip ordinal prefix (e.g. 00-)
+    _fn_name="${_fn_name//-/_}"        # convert hyphens to underscores
     _fn_name="_prompt_${_fn_name}"
     _PROMPT_MODIFIER_FNS+=("$_fn_name")
 done
