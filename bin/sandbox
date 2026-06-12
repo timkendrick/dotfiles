@@ -34,6 +34,7 @@ Tool-specific convenience flags:
   --bash                Allow read-only access to ~/.bashrc, ~/.profile and ~/.bash_profile
   --cargo               Allow read-only access to ~/.cargo and read+write access to ~/.cargo/registry and ~/.cargo/git
   --claude              Allow read+write access to ~/.claude.json and ~/.claude/
+  --colima              Allow read-only access to ~/.colima
   --docker              Allow read-only access to ~/.docker and read+write access to ~/.docker/buildx
   --git                 Allow read-only access to git config files in the home directory
   --helm                Allow read-only access to helm config files in ~/Library/Preferences/helm
@@ -358,6 +359,10 @@ while [[ $# -gt 0 ]]; do
         --claude)
             PATHS+=("$HOME/.claude")
             LITERAL_PATHS+=("$HOME/.claude.json")
+            shift
+            ;;
+        --colima)
+            READONLY_PATHS+=("$HOME/.colima")
             shift
             ;;
         --git)

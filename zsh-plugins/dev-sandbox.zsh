@@ -2,6 +2,7 @@ alias 'dev-sandbox'='sandbox \
   --bash \
   --cargo \
   --claude \
+  --colima \
   --docker \
   --git \
   --helm \
