@@ -1,0 +1,2 @@
+;; Allow read-only access to ~/.colima
+(allow file-read* (subpath (string-append (param "HOME") "/.colima")))

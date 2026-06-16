@@ -1,0 +1,4 @@
+;; Deny read access to files within the user's home directory
+;; (allow stat/lstat on directories so that realpath() can traverse path components)
+(deny file-read* (subpath (param "HOME")))
+(allow file-read-metadata (require-all (subpath (param "HOME")) (vnode-type DIRECTORY)))

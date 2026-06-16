@@ -1,0 +1,2 @@
+;; System preferences
+(allow user-preference-read)

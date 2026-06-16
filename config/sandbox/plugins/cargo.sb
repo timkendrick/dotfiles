@@ -1,0 +1,4 @@
+;; Allow read-only access to ~/.cargo and read+write access to ~/.cargo/registry and ~/.cargo/git
+(allow file-read* (subpath (string-append (param "HOME") "/.cargo")))
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.cargo/registry")))
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.cargo/git")))

@@ -1,0 +1,4 @@
+;; Allow read-only access to ~/.bashrc, ~/.profile and ~/.bash_profile
+(allow file-read* (literal (string-append (param "HOME") "/.bashrc")))
+(allow file-read* (literal (string-append (param "HOME") "/.profile")))
+(allow file-read* (literal (string-append (param "HOME") "/.bash_profile")))

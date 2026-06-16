@@ -1,0 +1,7 @@
+;; Execution, process management, and inter-process communication
+(allow process-exec*)
+(allow process-fork)
+(allow process-info* (target same-sandbox))
+(allow signal (target same-sandbox))
+(allow mach-priv-task-port (target same-sandbox))
+(allow ipc-posix*)

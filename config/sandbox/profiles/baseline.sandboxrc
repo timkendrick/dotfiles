@@ -1,0 +1,4 @@
+--plugin system-devices
+--plugin process
+--plugin system-services
+--plugin tmp

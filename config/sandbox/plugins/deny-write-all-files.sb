@@ -1,0 +1,2 @@
+;; Deny write access to all files
+(deny file-write*)

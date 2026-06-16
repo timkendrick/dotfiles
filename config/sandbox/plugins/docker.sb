@@ -1,0 +1,3 @@
+;; Allow read-only access to ~/.docker and read+write access to ~/.docker/buildx
+(allow file-read* (subpath (string-append (param "HOME") "/.docker")))
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.docker/buildx")))

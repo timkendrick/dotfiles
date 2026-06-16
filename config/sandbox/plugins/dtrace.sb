@@ -1,0 +1,2 @@
+;; Allow read/write access to dtracehelper
+(allow file-ioctl file-read* file-write* (literal "/dev/dtracehelper"))

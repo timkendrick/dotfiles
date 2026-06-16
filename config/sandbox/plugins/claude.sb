@@ -1,0 +1,3 @@
+;; Allow read+write access to ~/.claude.json and ~/.claude/
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.claude")))
+(allow file-read* file-write* (literal (string-append (param "HOME") "/.claude.json")))

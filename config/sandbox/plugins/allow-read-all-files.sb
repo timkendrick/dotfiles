@@ -1,0 +1,2 @@
+;; Allow read access to all files
+(allow file-read*)

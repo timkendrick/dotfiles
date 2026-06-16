@@ -39,3 +39,9 @@ Register `claude` agent configuration:
 scripts/link-config-dir .agents ~/.claude --rename 's/^AGENTS\.md$/CLAUDE.md/' --rename 's/^prompts$/commands/'
 scripts/merge-json ~/.claude.json < config/claude/mcp.json
 ```
+
+Register `sandbox` configuration presets:
+
+```bash
+scripts/link-config-dir config/sandbox ~/.config/sandbox
+```

@@ -1,0 +1,4 @@
+;; Allow read+write access to ~/Library/pnpm
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/Library/pnpm")))
+(allow file-read* (subpath (string-append (param "HOME") "/Library/Preferences/pnpm")))
+(allow file-read* (literal (string-append (param "HOME") "/.npmrc")))

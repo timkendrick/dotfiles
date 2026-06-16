@@ -1,0 +1,2 @@
+;; Allow read access to ~/.rustup
+(allow file-read* (subpath (string-append (param "HOME") "/.rustup")))

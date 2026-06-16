@@ -1,0 +1,2 @@
+;; Allow read+write access to ~/.cache/node/corepack
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.cache/node/corepack")))

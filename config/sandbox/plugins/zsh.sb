@@ -1,0 +1,6 @@
+;; Allow read-only access to ~/.zshenv, ~/.zshrc, and ~/.zprofile
+(allow file-read* (literal (string-append (param "HOME") "/.zshenv")))
+(allow file-read* (literal (string-append (param "HOME") "/.zshrc")))
+(allow file-read* (literal (string-append (param "HOME") "/.zprofile")))
+(allow file-read* (literal (string-append (param "HOME") "/.zsh_history")))
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.zsh_sessions")))

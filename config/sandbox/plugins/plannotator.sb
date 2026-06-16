@@ -1,0 +1,2 @@
+;; Allow read+write access to ~/.plannotator
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.plannotator")))

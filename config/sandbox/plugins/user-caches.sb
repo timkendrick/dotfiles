@@ -1,0 +1,2 @@
+;; Allow read/write access to the user's cache directory
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/Library/Caches")))

@@ -1,0 +1,2 @@
+;; Allow read+write access to ~/.pi
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.pi")))

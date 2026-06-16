@@ -1,0 +1,2 @@
+;; Allow read-only access to helm config files in ~/Library/Preferences/helm
+(allow file-read* (subpath (string-append (param "HOME") "/Library/Preferences/helm")))

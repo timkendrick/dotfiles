@@ -1,0 +1,14 @@
+;; Allow read/write access to system devices
+(allow file-ioctl file-read* file-write* 
+  (literal "/dev/null")
+  (literal "/dev/ptmx")
+  (literal "/dev/random")
+  (literal "/dev/stderr")
+  (literal "/dev/stdout")
+  (literal "/dev/tty")
+  (literal "/dev/urandom")
+  (literal "/dev/zero")
+  (regex #"^/dev/pts/.*")
+  (regex #"^/dev/pty[p-za-e][0-9a-f]+")
+  (regex #"^/dev/tty[p-za-e][0-9]+"))
+(allow pseudo-tty)

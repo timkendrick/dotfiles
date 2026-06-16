@@ -1,0 +1,6 @@
+;; Allow read/write access to temporary directories
+(allow file-read* file-write* 
+  (subpath "/tmp")
+  (subpath "/private/tmp")
+  (subpath "/private/var/tmp")
+  (subpath (param "TMPDIR")))

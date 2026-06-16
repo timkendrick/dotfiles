@@ -1,0 +1,2 @@
+;; Full network access
+(allow network*)

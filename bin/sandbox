@@ -4,22 +4,98 @@ set -euo pipefail
 # macOS Sandbox Wrapper Script
 # Usage: sandbox [write_path1, write_path2, ...] -- <command> [arguments...]
 
-# Script setup
-SCRIPT_DIR="$(dirname "$0")"
-CONFIG_TEMPLATE="$SCRIPT_DIR/sandbox.sb"
+# Print the static base sandbox profile template to stdout.
+print_sandbox_template() {
+    cat <<'EOF'
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; macOS Sandbox Configuration Template
+;; Reference: sandbox-exec(1)
+;;
+;; Required profile parameters (provided via `-D key=value`):
+;; - HOME - User's home directory: `$(realpath "$HOME")`
+;; - TMPDIR - Temp directory: `$(realpath "$TMPDIR")`
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-if [[ ! -f "$CONFIG_TEMPLATE" ]]; then
-    echo "Error: Sandbox template file not found at $CONFIG_TEMPLATE" >&2
-    exit 1
-fi
+(version 1)
+EOF
+}
+
+# Configuration paths
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/sandbox"
+PLUGINS_DIR="${CONFIG_DIR}/plugins"
+PROFILES_DIR="${CONFIG_DIR}/profiles"
+
+# List all available profiles with their definition file paths.
+# Output: one line per profile: "<name>  <path>"
+list_profiles() {
+    [[ -d "$PROFILES_DIR" ]] || return 0
+    local file name
+    for file in "$PROFILES_DIR"/*.sandboxrc; do
+        [[ -e "$file" ]] || continue
+        name=$(basename "$file")
+        name="${name%.sandboxrc}"
+        printf '%-16s%s\n' "$name" "$file"
+    done | sort
+}
+
+# Find the definition file for a profile by name.
+# Prints the file path, or nothing if not found.
+find_profile() {
+    local name="$1"
+    [[ -d "$PROFILES_DIR" ]] || return 0
+    if [[ -f "$PROFILES_DIR/$name.sandboxrc" ]]; then
+        echo "$PROFILES_DIR/$name.sandboxrc"
+    fi
+}
+
+# List all available plugins with their definition file paths.
+# Output: one line per plugin: "<name>  <path>"
+list_plugins() {
+    [[ -d "$PLUGINS_DIR" ]] || return 0
+    local file name
+    for file in "$PLUGINS_DIR"/*.sb "$PLUGINS_DIR"/*.sh; do
+        [[ -e "$file" ]] || continue
+        name=$(basename "$file")
+        name="${name%.sb}"
+        name="${name%.sh}"
+        printf '%-16s%s\n' "$name" "$file"
+    done | sort
+}
+
+# Find the definition file for a plugin by name.
+# Prints the file path, or nothing if not found.
+find_plugin() {
+    local name="$1"
+    [[ -d "$PLUGINS_DIR" ]] || return 0
+    if [[ -f "$PLUGINS_DIR/$name.sb" ]]; then
+        echo "$PLUGINS_DIR/$name.sb"
+    elif [[ -f "$PLUGINS_DIR/$name.sh" ]]; then
+        echo "$PLUGINS_DIR/$name.sh"
+    fi
+}
+
+# Parse an rc/profile file and print one token per line to stdout.
+# Blank lines and lines starting with # are ignored.
+# ~ is expanded to $HOME. Each line is word-split into tokens.
+# $1 = path to the file
+parse_rc_file() {
+    local file="$1"
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        line="${line//'~'/$HOME}"
+        read -ra tokens <<< "$line"
+        printf '%s\n' "${tokens[@]+"${tokens[@]}"}"
+    done < "$file"
+}
 
 usage() {
     cat <<EOF
 macOS Sandbox Wrapper
-Run commands in a restricted sandbox environment with read-only filesystem access
+Run commands in a restricted sandbox environment
 
 Usage:
-  $(basename "$0") [options] -- <command> [arguments...]
+  $(basename "$0") [options]  Print the generated sandbox-exec profile to stdout
+  $(basename "$0") [options] -- <command> [arguments...]  Run command inside the sandbox
 
 Options:
   -h, --help                  Show this help message and exit
@@ -29,30 +105,14 @@ Options:
   --path-readonly <path>      Allow read-only access to an exact path (no children)
   --pattern <regex>           Allow read+write access to paths matching a regex pattern
   --pattern-readonly <regex>  Allow read-only access to paths matching a regex pattern
+  --plugin <name>, --plugin=<name>  Enable a named plugin (see below for available plugins)
+  --profile <name>, --profile=<name>  Apply a named profile (see below for available profiles)
 
-Tool-specific convenience flags:
-  --bash                Allow read-only access to ~/.bashrc, ~/.profile and ~/.bash_profile
-  --cargo               Allow read-only access to ~/.cargo and read+write access to ~/.cargo/registry and ~/.cargo/git
-  --claude              Allow read+write access to ~/.claude.json and ~/.claude/
-  --colima              Allow read-only access to ~/.colima
-  --docker              Allow read-only access to ~/.docker and read+write access to ~/.docker/buildx
-  --git                 Allow read-only access to git config files in the home directory
-  --helm                Allow read-only access to helm config files in ~/Library/Preferences/helm
-  --jj                  Allow read-only access to jj config files in the home directory
-  --keychain            Allow read-only access to the macOS keychain (via the security CLI)
-  --kubectl             Allow read-only access to ~/.kube/config
-  --mise                Allow read-only access to all mise-managed tool installs
-  --node                Allow read+write access to ~/.cache/node/corepack
-  --npm                 Allow read+write access to ~/.npm
-  --nx                  Allow read-only access to ~/.config/nx
-  --pi                  Allow read+write access to ~/.pi
-  --plannotator         Allow read+write access to ~/.plannotator
-  --pnpm                Allow read+write access to ~/Library/pnpm
-  --rustup              Allow read access to ~/.rustup
-  --vim                 Allow read-only access to ~/.vimrc and ~/.vim
-  --zsh                 Allow read-only access to ~/.zshenv, ~/.zshrc, and ~/.zprofile
-  --git-repo            Allow read+write access to the git repository root (detected via git rev-parse)
-  --jj-repo             Allow read+write access to the jj workspace root (and linked repo, if any)
+Available profiles:
+$(list_profiles | sed 's/^/  /')
+
+Available plugins:
+$(list_plugins | sed 's/^/  /')
 
 Examples:
   # Allow writing to specific directories
@@ -61,10 +121,13 @@ Examples:
   # Allow writing to paths matching a pattern (e.g. temporary logs)
   $(basename "$0") --pattern "^/var/folders/.*/*.log$" -- touch "$(mktemp -d)"/test.log
 
+  # Preview the generated sandbox profile
+  $(basename "$0") --dir ./src
+
   # Read-only execution (default)
   $(basename "$0") -- ls -la
 
-Files within the user's home directory are blocked by default.
+The default sandbox has no permissions; all access must be explicitly granted.
 
 If a .sandboxrc file exists in the current working directory, it is read as
 additional sandbox arguments (appended after any CLI arguments). Blank lines
@@ -82,6 +145,8 @@ deny read access to additional paths. The file follows gitignore glob syntax:
     ? matches any single character, [abc] matches a character class
 EOF
 }
+
+# ---------------------------------------------------------------------------
 
 # Convert a single gitignore-style glob pattern (already stripped of leading !
 # and trailing /) to an extended-regex string anchored to $base_dir.
@@ -182,7 +247,28 @@ gitignore_pattern_to_regex() {
     printf '%s' "$regex"
 }
 
-# Parse a .sandboxignore file and emit sandbox profile lines.
+# ---------------------------------------------------------------------------
+# Sandbox profile expression factory functions.
+# Each function prints a sandbox scheme expression to stdout.
+# Compose them with $(...) substitution.
+# ---------------------------------------------------------------------------
+
+# Location expressions
+literal_expression() { printf '(literal %s)' "$1"; }
+subpath_expression() { printf '(subpath %s)' "$1"; }
+regex_expression()   { printf '(regex #"%s")' "$1"; }
+
+# Quoted helpers for plain absolute paths (the common case for --dir / --path)
+literal_path_expression()  { literal_expression "\"$1\""; }
+subpath_path_expression()  { subpath_expression "\"$1\""; }
+
+# Permission rule constructors
+allow_read_rule()       { printf '(allow file-read* %s)'            "$1"; }
+allow_read_write_rule() { printf '(allow file-read* file-write* %s)' "$1"; }
+deny_read_rule()        { printf '(deny file-read* %s)'             "$1"; }
+
+# Parse a .sandboxignore file and emit sandbox profile rule strings, one per line.
+# Deny rules are emitted first, then allow (negation) rules so that negations win.
 # $1 = path to the .sandboxignore file
 # $2 = base directory (absolute, no trailing slash)
 emit_sandboxignore_rules() {
@@ -217,13 +303,12 @@ emit_sandboxignore_rules() {
         [[ -z "$regex" ]] && continue
 
         if $negated; then
-            allow_rules+=("(allow file-read* (regex #\"${regex}\"))")
+            allow_rules+=("$(allow_read_rule "$(regex_expression "$regex")")")
         else
-            deny_rules+=("(deny file-read* (regex #\"${regex}\"))")
+            deny_rules+=("$(deny_read_rule "$(regex_expression "$regex")")")
         fi
     done < "$file"
 
-    # Emit deny rules first, then allow (negation) rules so that negations win
     for rule in "${deny_rules[@]+"${deny_rules[@]}"}"; do
         echo "$rule"
     done
@@ -249,8 +334,8 @@ resolve_dir() {
 
 # Collect CLI option tokens (everything before --) and COMMAND_ARGS (everything after).
 # Also handle --help early since it exits immediately.
+COMMAND_MODE=false
 COMMAND_ARGS=()
-SEPARATOR_FOUND=false
 cli_args=()
 
 while [[ $# -gt 0 ]]; do
@@ -260,8 +345,8 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         --)
-            SEPARATOR_FOUND=true
             shift
+            COMMAND_MODE=true
             COMMAND_ARGS=("$@")
             break
             ;;
@@ -276,274 +361,177 @@ done
 rc_args=()
 SANDBOXRC_FILE="$(pwd)/.sandboxrc"
 if [[ -f "$SANDBOXRC_FILE" ]]; then
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        # Skip blank lines and comments
-        [[ -z "$line" || "$line" == \#* ]] && continue
-        # Expand ~ to $HOME, then word-split the line into tokens
-        line="${line//'~'/$HOME}"
-        read -ra tokens <<< "$line"
-        rc_args+=("${tokens[@]}")
-    done < "$SANDBOXRC_FILE"
+    while IFS= read -r token; do rc_args+=("$token"); done < <(parse_rc_file "$SANDBOXRC_FILE")
 fi
 
-# Parse all option tokens — CLI args first, then rc args — through one shared loop.
-PATHS=()
-READONLY_PATHS=()
-LITERAL_PATHS=()
-READONLY_LITERAL_PATHS=()
-PATTERNS=()
-READONLY_PATTERNS=()
-set -- "${cli_args[@]+${cli_args[@]}}" "${rc_args[@]+${rc_args[@]}}"
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --dir)
-            if [[ -z "${2-}" ]]; then
-                echo "Error: --dir requires a path." >&2
-                exit 1
-            fi
-            PATHS+=("$(resolve_dir "$2")")
-            shift 2
-            ;;
-        --dir-readonly)
-            if [[ -z "${2-}" ]]; then
-                echo "Error: --dir-readonly requires a path." >&2
-                exit 1
-            fi
-            READONLY_PATHS+=("$(resolve_dir "$2")")
-            shift 2
-            ;;
-        --path)
-            if [[ -z "${2-}" ]]; then
-                echo "Error: --path requires a path." >&2
-                exit 1
-            fi
-            LITERAL_PATHS+=("$(resolve_dir "$2")")
-            shift 2
-            ;;
-        --path-readonly)
-            if [[ -z "${2-}" ]]; then
-                echo "Error: --path-readonly requires a path." >&2
-                exit 1
-            fi
-            READONLY_LITERAL_PATHS+=("$(resolve_dir "$2")")
-            shift 2
-            ;;
-        --pattern)
-            if [[ -z "${2-}" ]]; then
-                echo "Error: --pattern requires a regex." >&2
-                exit 1
-            fi
-            PATTERNS+=("$2")
-            shift 2
-            ;;
-        --pattern-readonly)
-            if [[ -z "${2-}" ]]; then
-                echo "Error: --pattern-readonly requires a regex." >&2
-                exit 1
-            fi
-            READONLY_PATTERNS+=("$2")
-            shift 2
-            ;;
-        --bash)
-            READONLY_LITERAL_PATHS+=("$HOME/.bashrc")
-            READONLY_LITERAL_PATHS+=("$HOME/.profile")
-            READONLY_LITERAL_PATHS+=("$HOME/.bash_profile")
-            shift
-            ;;
-        --cargo)
-            READONLY_PATHS+=("$HOME/.cargo")
-            PATHS+=("$HOME/.cargo/registry")
-            PATHS+=("$HOME/.cargo/git")
-            shift
-            ;;
-        --claude)
-            PATHS+=("$HOME/.claude")
-            LITERAL_PATHS+=("$HOME/.claude.json")
-            shift
-            ;;
-        --colima)
-            READONLY_PATHS+=("$HOME/.colima")
-            shift
-            ;;
-        --git)
-            READONLY_PATHS+=("$HOME/.config/git")
-            READONLY_LITERAL_PATHS+=("$HOME/.gitconfig")
-            shift
-            ;;
-        --helm)
-            READONLY_PATHS+=("$HOME/Library/Preferences/helm")
-            shift
-            ;;
-        --jj)
-            READONLY_PATHS+=("$HOME/.config/jj")
-            PATHS+=("$HOME/.config/jj/repos")
-            shift
-            ;;
-        --keychain)
-            READONLY_PATHS+=("$HOME/Library/Keychains")
-            shift
-            ;;
-        --kubectl)
-            READONLY_LITERAL_PATHS+=("$HOME/.kube/config")
-            shift
-            ;;
-        --git-repo)
-            if git_root=$(git rev-parse --show-toplevel 2>/dev/null); then
-                PATHS+=("$(realpath "$git_root")")
-            fi
-            shift
-            ;;
-        --jj-repo)
-            if jj_root=$(jj workspace root 2>/dev/null); then
-                PATHS+=("$jj_root")
-                if [[ -f "$jj_root/.jj/repo" ]]; then
-                    linked_repo=$(cat "$jj_root/.jj/repo")
-                    PATHS+=("$(realpath "$(dirname "$(dirname "$linked_repo")")")") 
+# Parse all option tokens - CLI args first, then rc args - and accumulate
+# sandbox profile rule blocks into profile_sections.
+profile_sections=()
+_section_depth=0
+
+# Append a commented section (and optional rule content) to profile_sections,
+# indented according to the current _section_depth.
+add_section() {
+    local comment="$1"
+    local rule="${2-}"
+    local indent
+    indent=$(printf '%*s' "$_section_depth" '' | tr ' ' $'\t')
+
+    local entry="${indent};; ${comment}"
+    if [[ -n "$rule" ]]; then
+        local indented_rule
+        indented_rule=$(printf '%s\n' "$rule" | sed "s/^/${indent}/")
+        entry+=$'\n'"${indented_rule}"
+    fi
+    profile_sections+=("$entry")
+}
+
+# Process an argument list and append sandbox rules to profile_sections.
+# Called recursively for --profile expansion (depth-first).
+process_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --dir)
+                if [[ -z "${2-}" ]]; then
+                    echo "Error: --dir requires a path." >&2
+                    exit 1
                 fi
-            fi
-            shift
-            ;;
-        --pi)
-            PATHS+=("$HOME/.pi")
-            shift
-            ;;
-        --plannotator)
-            PATHS+=("$HOME/.plannotator")
-            shift
-            ;;
-        --node)
-            PATHS+=("$HOME/.cache/node/corepack")
-            shift
-            ;;
-        --npm)
-            PATHS+=("$HOME/.npm")
-            READONLY_LITERAL_PATHS+=("$HOME/.npmrc")
-            shift
-            ;;
-        --nx)
-            READONLY_PATHS+=("$HOME/.config/nx")
-            shift
-            ;;
-        --pnpm)
-            PATHS+=("$HOME/Library/pnpm")
-            READONLY_PATHS+=("$HOME/Library/Preferences/pnpm")
-            READONLY_LITERAL_PATHS+=("$HOME/.npmrc")
-            shift
-            ;;
-        --rustup)
-            READONLY_PATHS+=("$HOME/.rustup")
-            shift
-            ;;
-        --vim)
-            READONLY_LITERAL_PATHS+=("$HOME/.vimrc")
-            READONLY_PATHS+=("$HOME/.vim")
-            shift
-            ;;
-        --zsh)
-            READONLY_LITERAL_PATHS+=("$HOME/.zshenv")
-            READONLY_LITERAL_PATHS+=("$HOME/.zshrc")
-            READONLY_LITERAL_PATHS+=("$HOME/.zprofile")
-            READONLY_LITERAL_PATHS+=("$HOME/.zsh_history")
-            PATHS+=("$HOME/.zsh_sessions")
-            shift
-            ;;
-        --docker)
-            READONLY_PATHS+=("$HOME/.docker")
-            PATHS+=("$HOME/.docker/buildx")
-            shift
-            ;;
-        --mise)
-            # Allow read-only access to all mise-installed tools
-            mise_config_dir="${MISE_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/mise}"
-            mise_cache_dir="${MISE_CACHE_DIR:-$HOME/Library/Caches/mise}"
-            mise_state_dir="${MISE_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/mise}"
-            mise_share_dir="${MISE_SHARE_DIR:-${XDG_SHARE_HOME:-$HOME/.local/share}/mise}"
-            READONLY_PATHS+=("$mise_config_dir")
-            READONLY_PATHS+=("$mise_cache_dir")
-            READONLY_PATHS+=("$mise_state_dir")
-            READONLY_PATHS+=("$mise_share_dir")
-            PATHS+=("$mise_state_dir/tracked-configs")
-            shift
-            ;;
-        *)
-            echo "Error: Unknown argument '$1'." >&2
-            usage >&2
-            exit 1
-            ;;
-    esac
-done
+                add_section "--dir $2" "$(allow_read_write_rule "$(subpath_path_expression "$(resolve_dir "$2")")")" 
+                shift 2
+                ;;
+            --dir-readonly)
+                if [[ -z "${2-}" ]]; then
+                    echo "Error: --dir-readonly requires a path." >&2
+                    exit 1
+                fi
+                add_section "--dir-readonly $2" "$(allow_read_rule "$(subpath_path_expression "$(resolve_dir "$2")")")" 
+                shift 2
+                ;;
+            --path)
+                if [[ -z "${2-}" ]]; then
+                    echo "Error: --path requires a path." >&2
+                    exit 1
+                fi
+                add_section "--path $2" "$(allow_read_write_rule "$(literal_path_expression "$(resolve_dir "$2")")")" 
+                shift 2
+                ;;
+            --path-readonly)
+                if [[ -z "${2-}" ]]; then
+                    echo "Error: --path-readonly requires a path." >&2
+                    exit 1
+                fi
+                add_section "--path-readonly $2" "$(allow_read_rule "$(literal_path_expression "$(resolve_dir "$2")")")" 
+                shift 2
+                ;;
+            --pattern)
+                if [[ -z "${2-}" ]]; then
+                    echo "Error: --pattern requires a regex." >&2
+                    exit 1
+                fi
+                add_section "--pattern $2" "$(allow_read_write_rule "$(regex_expression "$2")")"
+                shift 2
+                ;;
+            --pattern-readonly)
+                if [[ -z "${2-}" ]]; then
+                    echo "Error: --pattern-readonly requires a regex." >&2
+                    exit 1
+                fi
+                add_section "--pattern-readonly $2" "$(allow_read_rule "$(regex_expression "$2")")"
+                shift 2
+                ;;
+            --plugin|--plugin=*)
+                if [[ "$1" == --plugin=* ]]; then
+                    plugin_name="${1#--plugin=}"
+                    shift
+                else
+                    if [[ $# -lt 2 ]]; then
+                        echo "Error: --plugin requires a plugin name." >&2
+                        usage >&2
+                        exit 1
+                    fi
+                    plugin_name="$2"
+                    shift 2
+                fi
+                plugin_file=$(find_plugin "$plugin_name")
+                if [[ -z "$plugin_file" ]]; then
+                    echo "Error: Unknown plugin '$plugin_name'." >&2
+                    usage >&2
+                    exit 1
+                fi
+                if [[ "$plugin_file" == *.sh ]]; then
+                    plugin_rules=$(bash "$plugin_file")
+                else
+                    plugin_rules=$(cat "$plugin_file")
+                fi
+                add_section "--plugin $plugin_name" "$plugin_rules"
+                ;;
+            --profile|--profile=*)
+                if [[ "$1" == --profile=* ]]; then
+                    profile_name="${1#--profile=}"
+                    shift
+                else
+                    if [[ $# -lt 2 ]]; then
+                        echo "Error: --profile requires a name." >&2
+                        usage >&2
+                        exit 1
+                    fi
+                    profile_name="$2"
+                    shift 2
+                fi
+                profile_file=$(find_profile "$profile_name")
+                if [[ -z "$profile_file" ]]; then
+                    echo "Error: Unknown profile '$profile_name'." >&2
+                    usage >&2
+                    exit 1
+                fi
+                add_section "--profile $profile_name"
+                (( _section_depth++ ))
+                local profile_tokens=()
+                while IFS= read -r token; do profile_tokens+=("$token"); done < <(parse_rc_file "$profile_file")
+                process_args "${profile_tokens[@]+"${profile_tokens[@]}"}"
+                (( _section_depth-- ))
+                ;;
+            *)
+                echo "Error: Unknown argument '$1'." >&2
+                usage >&2
+                exit 1
+                ;;
+        esac
+    done
+}
+
+add_section "Deny default rules" "(deny default)"
+process_args "${cli_args[@]+${cli_args[@]}}" "${rc_args[@]+${rc_args[@]}}"
 
 # Validate arguments
-if [[ "$SEPARATOR_FOUND" == "false" ]]; then
-    echo "Error: Missing '--' separator." >&2
-    usage >&2
-    exit 1
-fi
-if [[ ${#COMMAND_ARGS[@]} -eq 0 ]]; then
+if [[ "$COMMAND_MODE" == true && ${#COMMAND_ARGS[@]} -eq 0 ]]; then
     echo "Error: No command provided after '--'." >&2
     usage >&2
     exit 1
 fi
 
-# Load .sandboxignore from the current working directory, if present
+# Add rules from .sandboxignore, if present
 SANDBOXIGNORE_FILE="$(pwd)/.sandboxignore"
+if [[ -f "$SANDBOXIGNORE_FILE" ]]; then
+    while IFS= read -r rule; do
+        profile_sections+=("$rule")
+    done < <(emit_sandboxignore_rules "$SANDBOXIGNORE_FILE" "$(pwd)")
+fi
 
-# Create the sandbox profile (template + appended rules)
+# Create the sandbox profile (template + dynamic rules)
 profile_source=$(
-    cat "$CONFIG_TEMPLATE"
+    print_sandbox_template
     echo ""
-    echo ";; Allow read access to PATH directories for locating executables"
-    IFS=: read -ra path_dirs <<< "$PATH"
-    for path_dir in "${path_dirs[@]}"; do
-        # Resolve relative entries against CWD
-        [[ "$path_dir" != /* ]] && path_dir="$(pwd)/$path_dir"
-        echo "(allow file-read* (subpath \"$path_dir\"))"
+    for section in "${profile_sections[@]+"${profile_sections[@]}"}"; do
+        echo "$section"
+        echo ""
     done
-    if [[ -f "$SANDBOXIGNORE_FILE" ]]; then
-        echo ""
-        echo ";; --- IGNORE RULES ---"
-        emit_sandboxignore_rules "$SANDBOXIGNORE_FILE" "$(pwd)"
-        echo ";; --- END OF IGNORE RULES ---"
-        echo ""
-    fi
-    echo ""
-    echo ";; --- DYNAMIC RULES ---"
-    if [[ ${#READONLY_LITERAL_PATHS[@]} -gt 0 ]]; then
-        for path in "${READONLY_LITERAL_PATHS[@]}"; do
-            echo "(allow file-read* (literal \"$path\"))"
-        done
-    fi
-    if [[ ${#READONLY_PATHS[@]} -gt 0 ]]; then
-        for dir in "${READONLY_PATHS[@]}"; do
-            echo "(allow file-read* (subpath \"$dir\"))"
-        done
-    fi
-    if [[ ${#READONLY_PATTERNS[@]} -gt 0 ]]; then
-        for pattern in "${READONLY_PATTERNS[@]}"; do
-            echo "(allow file-read* (regex #\"$pattern\"))"
-        done
-    fi
-    if [[ ${#LITERAL_PATHS[@]} -gt 0 ]]; then
-        for path in "${LITERAL_PATHS[@]}"; do
-            echo "(allow file-read* file-write* (literal \"$path\"))"
-        done
-    fi
-    if [[ ${#PATHS[@]} -gt 0 ]]; then
-        for dir in "${PATHS[@]}"; do
-            echo "(allow file-read* file-write* (subpath \"$dir\"))"
-        done
-    fi
-    if [[ ${#PATTERNS[@]} -gt 0 ]]; then
-        for pattern in "${PATTERNS[@]}"; do
-            echo "(allow file-read* file-write* (regex #\"$pattern\"))"
-        done
-    fi
-    echo ";; --- END OF DYNAMIC RULES ---"
 )
 
-# If the SANDBOX_DEBUG environment variable is set, print the generated profile for debugging
-if [[ -n "${SANDBOX_DEBUG-}" ]]; then
-    echo "$profile_source" >&2
+# If no command was specified, write the profile to stdout and exit
+if [[ "$COMMAND_MODE" == false ]]; then
+    echo "$profile_source"
+    exit 0
 fi
 
 # Execute the command in the sandbox environment

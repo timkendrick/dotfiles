@@ -1,0 +1,2 @@
+;; Allow read-only access to ~/.kube/config
+(allow file-read* (literal (string-append (param "HOME") "/.kube/config")))
