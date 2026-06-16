@@ -27,6 +27,9 @@ ZSH_PROMPTS_PATH="$PACKAGE_ROOT/zsh-prompts"
 ZSH_COMPLETIONS_PATH="$PACKAGE_ROOT/zsh-completions"
 ZSH_SYNTAX_HIGHLIGHTING_PATH="$PACKAGE_ROOT/zsh-syntax-highlighting"
 
+# Set DOTFILES_PATH to the root of the dotfiles package
+export DOTFILES_PATH="$PACKAGE_ROOT"
+
 # Add bin directory to PATH
 export PATH="$BIN_PATH:$PATH"
 

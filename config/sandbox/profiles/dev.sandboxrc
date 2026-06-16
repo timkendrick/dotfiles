@@ -28,5 +28,5 @@
 --plugin vcs
 --plugin vim
 --plugin zsh
---dir-readonly ~/.config/dotfiles
+--plugin dotfiles
 --dir .
