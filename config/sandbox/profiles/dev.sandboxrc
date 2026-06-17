@@ -29,6 +29,7 @@
 --plugin tt
 --plugin vcs
 --plugin vim
+--plugin vscode
 --plugin zsh
 --plugin dotfiles
 --dir .
