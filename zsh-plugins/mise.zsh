@@ -1,11 +1,15 @@
 load_completions mise 'mise completion zsh'
 
+mise-list-npm-packages() {
+  mise ls --json | jq -r 'keys[]' | grep '^npm:'
+}
+
 mise-link-global-npm-packages() {
   local node_modules_path="$(mise where node)/lib/node_modules"
   # Read list of packages from arguments, defaulting to reading from mise directory if no arguments are provided
   local pkgs=("$@")
   if [ ${#pkgs[@]} -eq 0 ]; then
-    pkgs=($(mise ls --json | jq -r 'keys[]' | grep '^npm:'))
+    pkgs=($(mise-list-npm-packages))
   fi
   for pkg in "${pkgs[@]}"; do
     local pkg_dir="$(mise where $pkg)"
