@@ -26,6 +26,7 @@
 --plugin plannotator
 --plugin pnpm
 --plugin rustup
+--plugin tt
 --plugin vcs
 --plugin vim
 --plugin zsh
