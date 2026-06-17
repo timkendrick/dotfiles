@@ -1,6 +1,7 @@
 --profile baseline
 --plugin dtrace
 --plugin system-preferences
+--plugin app-services
 --plugin user-caches
 --plugin network
 --plugin path

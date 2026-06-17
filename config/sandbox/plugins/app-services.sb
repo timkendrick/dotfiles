@@ -1,0 +1,3 @@
+;; Launch services
+(allow lsopen)
+(allow appleevent-send)
