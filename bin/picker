@@ -1,0 +1,567 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Interactive value picker library
+# 
+# Provides an interactive terminal-based selector that reads items from stdin
+# and allows the user to select one using keyboard navigation and filtering.
+#
+# Features:
+# - Vim-style navigation (j/k, arrow keys)
+# - Fuzzy filtering with '/' key
+# - Case-insensitive subsequence matching
+# - Visual highlighting of matched characters in filter mode
+# - Proper terminal cleanup and error handling
+#
+# Usage:
+#   echo -e "item1\nitem2\nitem3" | picker
+#
+# Key bindings:
+#   j/↓     - Move selection down
+#   k/↑     - Move selection up  
+#   g       - Go to first item
+#   G       - Go to last item
+#   /       - Start filtering
+#   Enter   - Select current item (or apply filter)
+#   Escape  - Cancel filter (return to normal mode)
+#   Backspace - Remove last filter character
+#   Ctrl-U  - Clear entire filter
+
+# =============================================================================
+# STATE MACHINE
+# =============================================================================
+
+# Core state machine variables
+_PICKER_MODE="normal"
+_PICKER_ITEMS=()
+_PICKER_FILTER=""
+_PICKER_PENDING_FILTER=""
+_PICKER_SELECTED_IDX=0
+_PICKER_WINDOW_OFFSET=0
+_PICKER_WINDOW_SIZE=10
+_PICKER_FILTERED_ITEMS=()
+
+# Control variables
+_PICKER_DONE=0
+_PICKER_RESULT=""
+_PICKER_KEY=""
+_PICKER_PREV_LINES=0
+_PICKER_ORIG_STTY=""
+_PICKER_MESSAGE=""
+_PICKER_NUM_MESSAGE_ROWS=0
+
+# Main loop entry point. Reads items from stdin and starts the interactive picker, writing the result to stdout.
+picker() {
+  # Read all input items into array
+  local items=()
+  while IFS= read -r line; do
+    items+=("$line")
+  done
+  # Validate input
+  if [[ ${#items[@]} -eq 0 ]]; then
+    echo "Error: No items to select from" >&2
+    return 1
+  fi
+  # Check if we have a TTY for input/output
+  if [[ ! -t 2 ]]; then
+    echo "Error: $(basename "$0") requires a TTY (stderr) for interactive display" >&2
+    return 1
+  fi
+  # Check for /dev/tty access
+  if [[ ! -e /dev/tty ]]; then
+    echo "Error: /dev/tty not available" >&2
+    return 1
+  fi
+  # Initialize state machine
+  _PICKER_ITEMS=("${items[@]}")
+  _picker_init_state
+  # Setup terminal
+  _picker_setup_terminal
+  trap '_picker_cleanup_terminal' EXIT
+  # Main event loop
+  _PICKER_KEY=""
+  while [[ "${_PICKER_DONE:-0}" != "1" ]]; do
+    _picker_render
+    _picker_read_key
+    _picker_transition "$_PICKER_KEY"
+  done
+  # Clean up terminal before printing result so stdout isn't mixed with /dev/tty
+  _picker_cleanup_terminal
+  trap - EXIT
+  echo "${_PICKER_RESULT}"
+  return 0
+}
+
+# =============================================================================
+# STATE MACHINE FUNCTIONS
+# =============================================================================
+
+# Initialize state variables from items array
+_picker_init_state() {
+  _PICKER_MODE="normal"
+  _PICKER_FILTER=""
+  _PICKER_PENDING_FILTER=""
+  _PICKER_SELECTED_IDX=0
+  _PICKER_WINDOW_OFFSET=0
+  _PICKER_DONE=0
+  _PICKER_RESULT=""
+  _PICKER_PREV_LINES=0
+  # Calculate window size (terminal height - 2 for prompt/status)
+  local term_height
+  term_height="$(tput lines 2>/dev/null || echo 24)"
+  # Determine message row count
+  if [[ -n "$_PICKER_MESSAGE" ]]; then
+    _PICKER_NUM_MESSAGE_ROWS=1
+  else
+    _PICKER_NUM_MESSAGE_ROWS=0
+  fi
+  _PICKER_WINDOW_SIZE=$((term_height - 2 - _PICKER_NUM_MESSAGE_ROWS))
+  if [[ $_PICKER_WINDOW_SIZE -lt 3 ]]; then
+    _PICKER_WINDOW_SIZE=3
+  fi
+  _picker_apply_filter
+}
+
+# Compute _PICKER_FILTERED_ITEMS from _PICKER_ITEMS + current filter
+_picker_apply_filter() {
+  _PICKER_FILTERED_ITEMS=()
+  local filter_to_use="$_PICKER_FILTER"
+  if [[ "$_PICKER_MODE" == "filter" ]]; then
+    filter_to_use="$_PICKER_PENDING_FILTER"
+  fi
+  for item in "${_PICKER_ITEMS[@]}"; do
+    if _picker_fuzzy_match "$item" "$filter_to_use"; then
+      _PICKER_FILTERED_ITEMS+=("$item")
+    fi
+  done
+}
+
+# Check if value matches filter (case-insensitive subsequence)
+# Returns 0 if match, 1 if no match
+# TODO: Also output match positions for rendering
+# Convert a single ASCII character to lowercase.
+# Usage: _picker_to_lower <char> <result_var>
+_picker_to_lower() {
+  local _char="$1"
+  local _result_var="$2"
+  local _lower
+  case "$_char" in
+    A) _lower="a" ;; B) _lower="b" ;; C) _lower="c" ;; D) _lower="d" ;; E) _lower="e" ;;
+    F) _lower="f" ;; G) _lower="g" ;; H) _lower="h" ;; I) _lower="i" ;; J) _lower="j" ;;
+    K) _lower="k" ;; L) _lower="l" ;; M) _lower="m" ;; N) _lower="n" ;; O) _lower="o" ;;
+    P) _lower="p" ;; Q) _lower="q" ;; R) _lower="r" ;; S) _lower="s" ;; T) _lower="t" ;;
+    U) _lower="u" ;; V) _lower="v" ;; W) _lower="w" ;; X) _lower="x" ;; Y) _lower="y" ;;
+    Z) _lower="z" ;;
+    *) _lower="$_char" ;;
+  esac
+  printf -v "$_result_var" '%s' "$_lower"
+}
+
+_picker_fuzzy_match() {
+  local value="$1"
+  local filter="$2"
+  # Empty filter matches everything
+  if [[ -z "$filter" ]]; then
+    return 0
+  fi
+  # Simple case-insensitive subsequence check
+  local value_len=${#value}
+  local filter_len=${#filter}
+  local filter_pos=0
+  for ((i = 0; i < value_len && filter_pos < filter_len; i++)); do
+    local v_char="${value:i:1}"
+    local f_char="${filter:filter_pos:1}"
+    # Simple case conversion for ASCII characters
+    _picker_to_lower "$v_char" v_char
+    _picker_to_lower "$f_char" f_char
+    if [[ "$v_char" == "$f_char" ]]; then
+      ((filter_pos++))
+    fi
+  done
+  [[ $filter_pos -eq $filter_len ]]
+}
+
+# Adjust _PICKER_WINDOW_OFFSET so _PICKER_SELECTED_IDX is visible
+_picker_clamp_window() {
+  local filtered_count=${#_PICKER_FILTERED_ITEMS[@]}
+  # Handle empty list
+  if [[ $filtered_count -eq 0 ]]; then
+    _PICKER_SELECTED_IDX=0
+    _PICKER_WINDOW_OFFSET=0
+    return
+  fi
+  # Ensure _PICKER_SELECTED_IDX is within bounds
+  if [[ $_PICKER_SELECTED_IDX -ge $filtered_count ]]; then
+    _PICKER_SELECTED_IDX=$((filtered_count - 1))
+  fi
+  if [[ $_PICKER_SELECTED_IDX -lt 0 ]]; then
+    _PICKER_SELECTED_IDX=0
+  fi
+  # Adjust window to keep selection visible
+  if [[ $_PICKER_SELECTED_IDX -lt $_PICKER_WINDOW_OFFSET ]]; then
+    _PICKER_WINDOW_OFFSET=$_PICKER_SELECTED_IDX
+  elif [[ $_PICKER_SELECTED_IDX -ge $((_PICKER_WINDOW_OFFSET + _PICKER_WINDOW_SIZE)) ]]; then
+    _PICKER_WINDOW_OFFSET=$((_PICKER_SELECTED_IDX - _PICKER_WINDOW_SIZE + 1))
+  fi
+  # Clamp window offset to valid range
+  if [[ $_PICKER_WINDOW_OFFSET -lt 0 ]]; then
+    _PICKER_WINDOW_OFFSET=0
+  fi
+  local max_offset=$((filtered_count - _PICKER_WINDOW_SIZE))
+  if [[ $max_offset -lt 0 ]]; then
+    max_offset=0
+  fi
+  if [[ $_PICKER_WINDOW_OFFSET -gt $max_offset ]]; then
+    _PICKER_WINDOW_OFFSET=$max_offset
+  fi
+}
+
+# Process a keypress and update state
+_picker_transition() {
+  local key="$1"
+  if [[ "$_PICKER_MODE" == "normal" ]]; then
+    _picker_transition_normal "$key"
+  elif [[ "$_PICKER_MODE" == "filter" ]]; then
+    _picker_transition_filter "$key"
+  fi
+}
+
+# Handle keys in normal mode
+_picker_transition_normal() {
+  local key="$1"
+  local filtered_count=${#_PICKER_FILTERED_ITEMS[@]}
+  case "$key" in
+    "j"|"arrow_down")
+      if [[ $filtered_count -gt 0 ]]; then
+        _PICKER_SELECTED_IDX=$((_PICKER_SELECTED_IDX + 1))
+        if [[ $_PICKER_SELECTED_IDX -ge $filtered_count ]]; then
+          _PICKER_SELECTED_IDX=$((filtered_count - 1))
+        fi
+        _picker_clamp_window
+      fi
+      ;;
+    "k"|"arrow_up")
+      if [[ $filtered_count -gt 0 ]]; then
+        _PICKER_SELECTED_IDX=$((_PICKER_SELECTED_IDX - 1))
+        if [[ $_PICKER_SELECTED_IDX -lt 0 ]]; then
+          _PICKER_SELECTED_IDX=0
+        fi
+        _picker_clamp_window
+      fi
+      ;;
+    "g")
+      _PICKER_SELECTED_IDX=0
+      _PICKER_WINDOW_OFFSET=0
+      ;;
+    "G")
+      if [[ $filtered_count -gt 0 ]]; then
+        _PICKER_SELECTED_IDX=$((filtered_count - 1))
+        _picker_clamp_window
+      fi
+      ;;
+    "enter")
+      if [[ $filtered_count -gt 0 ]]; then
+        _PICKER_RESULT="${_PICKER_FILTERED_ITEMS[$_PICKER_SELECTED_IDX]}"
+        _PICKER_DONE=1
+      fi
+      ;;
+    "/")
+      _PICKER_MODE="filter"
+      _PICKER_PENDING_FILTER=""
+      ;;
+    "escape")
+      if [[ -n "$_PICKER_FILTER" ]]; then
+        _PICKER_FILTER=""
+        _PICKER_SELECTED_IDX=0
+        _PICKER_WINDOW_OFFSET=0
+        _picker_apply_filter
+        _picker_clamp_window
+      fi
+      ;;
+  esac
+}
+
+# Handle keys in filter mode
+_picker_transition_filter() {
+  local key="$1"
+  case "$key" in
+    "enter")
+      # Apply filter if there are matches
+      _picker_apply_filter
+      if [[ ${#_PICKER_FILTERED_ITEMS[@]} -gt 0 ]]; then
+        _PICKER_FILTER="$_PICKER_PENDING_FILTER"
+        _PICKER_PENDING_FILTER=""
+        _PICKER_MODE="normal"
+        _PICKER_SELECTED_IDX=0
+        _PICKER_WINDOW_OFFSET=0
+        _picker_apply_filter
+        _picker_clamp_window
+      fi
+      ;;
+    "escape")
+      _PICKER_PENDING_FILTER=""
+      _PICKER_MODE="normal"
+      _picker_apply_filter
+      _picker_clamp_window
+      ;;
+    "backspace")
+      if [[ ${#_PICKER_PENDING_FILTER} -gt 0 ]]; then
+        _PICKER_PENDING_FILTER="${_PICKER_PENDING_FILTER%?}"
+        _picker_apply_filter
+        _picker_clamp_window
+      fi
+      ;;
+    "ctrl_u")
+      _PICKER_PENDING_FILTER=""
+      _picker_apply_filter
+      _picker_clamp_window
+      ;;
+    *)
+      # Add printable characters to filter
+      if [[ ${#key} -eq 1 && "$key" =~ [[:print:]] ]]; then
+        _PICKER_PENDING_FILTER="${_PICKER_PENDING_FILTER}${key}"
+        _picker_apply_filter
+        _picker_clamp_window
+      fi
+      ;;
+  esac
+}
+
+# =============================================================================
+# RENDERING FUNCTIONS
+# =============================================================================
+
+# Render current state to /dev/tty
+_picker_render() {
+  # Clear previous output
+  _picker_clear_display
+  # Recompute filtered items and window
+  _picker_apply_filter
+  _picker_clamp_window
+  local output_lines=0
+  # Render message if provided
+  if [[ $_PICKER_NUM_MESSAGE_ROWS -gt 0 ]]; then
+    printf "\033[2m%s\033[0m\r\n" "$_PICKER_MESSAGE" > /dev/tty
+    output_lines=$((output_lines + 1))
+  fi
+  local filtered_count=${#_PICKER_FILTERED_ITEMS[@]}
+  # Show items in current window
+  if [[ $filtered_count -eq 0 ]]; then
+    printf "\033[2mNo matches\033[0m\r\n" > /dev/tty
+    output_lines=$((output_lines + 1))
+  else
+    local window_end=$((_PICKER_WINDOW_OFFSET + _PICKER_WINDOW_SIZE))
+    if [[ $window_end -gt $filtered_count ]]; then
+      window_end=$filtered_count
+    fi
+    for ((i = _PICKER_WINDOW_OFFSET; i < window_end; i++)); do
+      local item="${_PICKER_FILTERED_ITEMS[$i]}"
+      if [[ "$_PICKER_MODE" == "normal" && $i -eq $_PICKER_SELECTED_IDX ]]; then
+        _picker_render_item "$item" "selected"
+      else
+        _picker_render_item "$item" "normal"
+      fi
+      output_lines=$((output_lines + 1))
+    done
+  fi
+  # Show status/prompt line
+  if [[ "$_PICKER_MODE" == "filter" ]]; then
+    printf "\033[2mfilter: \033[0m%s" "$_PICKER_PENDING_FILTER" > /dev/tty
+  elif [[ -n "$_PICKER_FILTER" ]]; then
+    printf "\033[2mfilter: %s\033[0m" "$_PICKER_FILTER" > /dev/tty
+  else
+    printf "\033[2mpress \"/\" to filter %s\033[0m" > /dev/tty
+  fi
+  output_lines=$((output_lines + 1))
+  _PICKER_PREV_LINES=$output_lines
+}
+
+# Render single item with appropriate formatting
+_picker_render_item() {
+  local item="$1"
+  local style="$2"
+  if [[ "$_PICKER_MODE" == "filter" && -n "$_PICKER_PENDING_FILTER" ]]; then
+    # In filter mode, highlight matching characters
+    local rendered_item
+    rendered_item="$(_picker_highlight_matches "$item" "$_PICKER_PENDING_FILTER")"
+    if [[ "$style" == "selected" ]]; then
+      printf "> \033[1m%b\033[0m\r\n" "$rendered_item" > /dev/tty
+    else
+      printf "  %b\r\n" "$rendered_item" > /dev/tty
+    fi
+  else
+    # Normal rendering
+    if [[ "$style" == "selected" ]]; then
+      printf "> \033[1m%s\033[0m\r\n" "$item" > /dev/tty
+    else
+      printf "  %s\r\n" "$item" > /dev/tty
+    fi
+  fi
+}
+
+# Clear previous render
+_picker_clear_display() {
+  if [[ $_PICKER_PREV_LINES -gt 0 ]]; then
+    # Clear current line (status/prompt), then move up and clear each item line
+    printf "\r\033[2K" > /dev/tty
+    local i
+    for ((i = 1; i < _PICKER_PREV_LINES; i++)); do
+      printf "\033[A\033[2K" > /dev/tty
+    done
+  fi
+}
+
+# Highlight matching characters in an item for filter display
+_picker_highlight_matches() {
+  local item="$1"
+  local filter="$2"
+  if [[ -z "$filter" ]]; then
+    printf '%s' "$item"
+    return
+  fi
+  local result=""
+  local item_len=${#item}
+  local filter_len=${#filter}
+  local filter_pos=0
+  for ((i = 0; i < item_len && filter_pos < filter_len; i++)); do
+    local char="${item:i:1}"
+    local filter_char="${filter:filter_pos:1}"
+    # Convert to lowercase for comparison
+    local char_lower filter_char_lower
+    _picker_to_lower "$char" char_lower
+    _picker_to_lower "$filter_char" filter_char_lower
+    if [[ "$char_lower" == "$filter_char_lower" ]]; then
+      # Highlight this character
+      result+="\033[4m${char}\033[24m"
+      ((filter_pos++))
+    else
+      result+="$char"
+    fi
+  done
+  # Add any remaining characters
+  if [[ $i -lt $item_len ]]; then
+    result+="${item:i}"
+  fi
+  printf '%s' "$result"
+}
+
+# =============================================================================
+# INPUT/TERMINAL FUNCTIONS
+# =============================================================================
+
+# Read one keypress and normalize to standard key names.
+# Sets the global _PICKER_KEY variable.
+_picker_read_key() {
+  local char
+  # Read single character
+  read -rsn1 char < /dev/tty
+  case "$char" in
+    $'\x1b') # Escape sequence or ESC key
+      # Arrow keys send 3 bytes: \x1b [ A/B. Read the next two bytes.
+      # bash 3.2's read -t doesn't work reliably in raw mode, so we
+      # use a blocking read with a very short TMOUT-based approach:
+      # just read the next char (the terminal sends them in a burst).
+      local seq1="" seq2=""
+      read -rsn1 seq1 < /dev/tty
+      if [[ "$seq1" == "[" ]]; then
+        read -rsn1 seq2 < /dev/tty
+        case "$seq2" in
+          'A') _PICKER_KEY="arrow_up" ;;
+          'B') _PICKER_KEY="arrow_down" ;;
+          *) _PICKER_KEY="escape" ;;
+        esac
+      else
+        _PICKER_KEY="escape"
+      fi
+      ;;
+    $'\n'|'') _PICKER_KEY="enter" ;;
+    $'\x7f'|$'\x08') _PICKER_KEY="backspace" ;;
+    $'\x15') _PICKER_KEY="ctrl_u" ;;
+    *) _PICKER_KEY="$char" ;;
+  esac
+}
+
+# Setup terminal for interactive use
+_picker_setup_terminal() {
+  # Save current terminal state (operate on /dev/tty, not stdin which may be a pipe)
+  _PICKER_ORIG_STTY="$(stty -g < /dev/tty)"
+  # Set raw mode without echo
+  stty raw -echo < /dev/tty
+  # Hide cursor
+  printf "\033[?25l" > /dev/tty
+}
+
+# Restore terminal state
+_picker_cleanup_terminal() {
+  # Clear any remaining output
+  _picker_clear_display
+  # Show cursor
+  printf "\033[?25h" > /dev/tty 2>/dev/null || true
+  # Restore terminal state
+  if [[ -n "${_PICKER_ORIG_STTY:-}" ]]; then
+    stty "$_PICKER_ORIG_STTY" < /dev/tty 2>/dev/null || true
+  fi
+}
+
+# =============================================================================
+# ENTRY POINT
+# =============================================================================
+
+usage() {
+    cat <<EOF
+Interactive value picker
+
+Usage:
+  <command> | $(basename "$0") [options]
+
+Options:
+  -h, --help            Show this help message and exit
+  -m, --message <msg>   Display a label above the options
+
+Key bindings:
+  j / ↓       Move selection down
+  k / ↑       Move selection up
+  g           Go to first item
+  G           Go to last item
+  /           Start filtering
+  Enter       Select current item (or apply filter)
+  Escape      Cancel filter (return to normal mode)
+  Backspace   Remove last filter character
+  Ctrl-U      Clear entire filter
+
+Examples:
+  echo -e "item1\nitem2\nitem3" | $(basename "$0")
+  ls | $(basename "$0")
+EOF
+}
+
+# When executed directly, parse args and run; when sourced, only expose functions.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            --message=*)
+                _PICKER_MESSAGE="${1#--message=}"
+                shift
+                ;;
+            --message|-m)
+                if [[ $# -lt 2 ]]; then
+                    echo "Error: --message requires an argument" >&2
+                    usage >&2
+                    exit 1
+                fi
+                _PICKER_MESSAGE="$2"
+                shift 2
+                ;;
+            *)
+                echo "Error: Unknown argument '$1'" >&2
+                usage >&2
+                exit 1
+                ;;
+        esac
+    done
+    picker
+fi

@@ -146,3 +146,16 @@ pi-prompt() {
   done
   sed "${arg_substitutions[@]}" < "$prompt_path"
 }
+
+pi-list-models() {
+  jq --raw-output '.enabledModels.[]' ~/.pi/agent/settings.json
+}
+
+pi-list-thinking() {
+  echo "off"
+  echo "minimal"
+  echo "low"
+  echo "medium"
+  echo "high"
+  echo "xhigh"
+}
