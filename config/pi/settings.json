@@ -1,10 +1,9 @@
 {
   "packages": [
     "npm:@dreki-gg/pi-context7",
+    "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@tintinweb/pi-subagents",
     "npm:@xl0/show-sysprompt",
-    "npm:pi-ask-tool-extension",
-    "npm:pi-btw",
     "npm:pi-caffeinate",
     "npm:pi-md-export",
     "npm:pi-powerline-footer",
