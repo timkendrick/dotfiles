@@ -30,13 +30,19 @@ Whenever the user asks you to research a topic, don't make educated guesses; alw
 
 Before making any change, no matter how minor, always create a new VCS 'checkpoint' commit. Similarly, whenever you make any incremental progress, no matter how small, create a new commit.
 
-### Commit message guidelines
+## Commit message guidelines
 
 Don't focus on describing changes to individual files (this can be trivially determined by inspecting the commit contents), instead explain the updated high-level behavior resulting from the commit, and (if relevant) the motivation for the commit.
 
 ## Tool calling
 
 - Always use the `context7` tools for external library API reference
+
+### Tool sandboxing
+
+You are running within a tightly-permissioned sandbox that prevents operations outside the immediate scope of the project. If you encounter unexpected permissions errors when attempting to access certain files or perform certain tool calls, this is likely due to an implicit violation of a sandbox restriction.
+
+If you suspect a sandbox restriction might be preventing a tool call from succeeding, rather than modifying the tool call to attempt to access the resources via alternative means, pause and ask the user to relax the sandbox restriction. Await user confirmation that this has taken place, then reattempt the tool call and proceed.
 
 ## Sub-agents
 
