@@ -1,0 +1,4 @@
+;; Allow creating and attaching disk images via hdiutil / diskimages-helper
+(allow sysctl-write (sysctl-name "vfs.generic.noremotehang"))
+(allow iokit-open-user-client (iokit-user-client-class "IOHDIXControllerUserClient"))
+(allow iokit-open-user-client (iokit-user-client-class "IOHDIXHDDriveOutKernelUserClient"))

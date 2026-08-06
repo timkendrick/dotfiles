@@ -1,5 +1,6 @@
 --profile baseline
 --plugin dtrace
+--plugin hdiutil
 --plugin system-preferences
 --plugin app-services
 --plugin user-caches
