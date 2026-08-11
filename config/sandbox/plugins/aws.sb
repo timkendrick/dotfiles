@@ -1,0 +1,2 @@
+;; Allow read-only access to ~/.aws
+(allow file-read* (subpath (string-append (param "HOME") "/.aws")))
