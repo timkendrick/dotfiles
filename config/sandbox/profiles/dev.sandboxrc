@@ -17,8 +17,6 @@
 --plugin git
 --plugin helm
 --plugin jj
---plugin keychain
---plugin kubectl
 --plugin mise
 --plugin node
 --plugin npm
