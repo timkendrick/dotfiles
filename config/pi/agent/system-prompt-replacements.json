@@ -1,0 +1,12 @@
+[
+  {
+    "provider": "anthropic",
+    "pattern": "/pi, a coding agent harness/",
+    "replacement": "a coding agent harness"
+  },
+  {
+    "provider": "anthropic",
+    "pattern": "/\\n\\nPi documentation.*?\\n\\n/s",
+    "replacement": "\n\n"
+  }
+]
