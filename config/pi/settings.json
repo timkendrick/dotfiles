@@ -3,10 +3,10 @@
     "npm:@dreki-gg/pi-context7",
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@tintinweb/pi-subagents",
-    "npm:@xl0/show-sysprompt",
     "npm:pi-caffeinate",
     "npm:pi-md-export",
     "npm:pi-powerline-footer",
+    "npm:pi-system-prompt",
     "npm:pi-web-providers",
     "npm:visual-explainer"
   ],
