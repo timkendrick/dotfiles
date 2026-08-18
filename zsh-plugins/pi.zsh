@@ -3,7 +3,6 @@ CONFIG_PATH="$PACKAGE_ROOT/config/pi/settings.json"
 USER_CONFIG_PATH="$HOME/.pi/agent/settings.json"
 
 export PI_OFFLINE=true
-export PI_DEFAULT_TOOLS="read,bash,edit,write,grep,find,ls"
 
 pi-install() {
   local pkgs=("$@")

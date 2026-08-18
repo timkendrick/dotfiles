@@ -10,6 +10,15 @@
     "npm:pi-web-providers",
     "npm:visual-explainer"
   ],
+  "defaultTools": [
+    "read",
+    "bash",
+    "edit",
+    "write",
+    "grep",
+    "find",
+    "ls"
+  ],
   "doubleEscapeAction": "tree",
   "hideThinkingBlock": false,
   "treeFilterMode": "no-tools"
