@@ -22,6 +22,8 @@ Use diagnostics tools after each code change to confirm any errors or warnings i
 
 Unless instructed otherwise by the user, don't maintain backwards compatibility. If you're concerned about backwards compatibility, ask the user. Never assume you need to be backwards compatible.
 
+Never include 'historical notes' or references to out-of-band documents or discussions (such as specs) in source code comments - these are often irrelevant to the reader; explaining the genesis of the current implementation has the potential to be both distracting and potentially even misleading.
+
 ## Research guidelines
 
 Whenever the user asks you to research a topic, don't make educated guesses; always find authoritative sources for your suggestions. If your suggested approach relies on any 3rd-party library dependencies, don't assume you know how to use the library correctly as your knowledge might be out of date – instead always use available MCP tools (e.g. `context7`) to find corresponding API documentation before making any suggestions. Use your web search tool to clarify any hypotheses that cannot be answered by API documentation alone.
