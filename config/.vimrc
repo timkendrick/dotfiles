@@ -3,6 +3,11 @@ set relativenumber
 " Show current line number
 set number
 
+" Set tab width to 4 spaces
+set tabstop=4
+" Set indentation width to 4 spaces
+set shiftwidth=4
+
 " Enable incremental search and highlight search results
 set incsearch
 set hlsearch
