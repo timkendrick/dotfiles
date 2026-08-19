@@ -9,29 +9,34 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-rules='
-- At the very end of your response, wrap the one-liner command in <command>...</command> tags. All other text must come before the opening <command> tag.
-- Spell out ALL CLI flags in full (e.g., prefer --recursive over -R, --verbose over -v). Never use abbreviated or short-form flags.
-- Do NOT include any comments in the output command.
-- If the task requires multiple commands, chain them with && or ; on a single line, or use backslash-escaped newlines.
-- Prefer standard, widely-available tools (GNU coreutils, etc.).
-- If the user asks about a 3rd-party CLI tool, use the context7 tools to look up its documentation before generating the command.'
-
 shell_name="$(basename "${SHELL:-bash}")"
+kernel_name="$(uname -s)"
 
-# Clear the screen to prevent pi output from being mixed with previous terminal content
-printf '\033[2J'
+rules=(
+  "Output only the shell command to run. No explanation, no markdown, no code fences. Just the raw command."
+  "Only print the command most likely to match the user's intent. Do not print multiple options or alternatives."
+  "Spell out ALL CLI flags in full (e.g., prefer --recursive over -R, --verbose over -v). Never use abbreviated or short-form flags."
+  "Prefer standard, widely-available tools (GNU coreutils, curl, jq, etc.)."
+  "If the user explicitly asks about a less common 3rd-party CLI tool (e.g. jj), use context7 to look up its documentation before generating the command."
+  "The user's current shell is ${shell_name} (${kernel_name}). Only generate commands that are compatible with this shell."
+)
 
-system_prompt="You are a shell command generator. The user's current shell is ${shell_name}. Given a natural language description, output exactly ONE runnable ${shell_name} one-liner command that accomplishes the task. Follow these rules strictly:$rules"
+system_prompt="You are a shell command generator. Follow these rules strictly:
+$(printf -- '- %s\n' "${rules[@]}")"
 
-raw_output="$(pi --print --no-builtin-tools --no-skills --no-prompt-templates --no-themes --no-context-files --system-prompt "$system_prompt" "$@")"
+cmd=$(pi --no-builtin-tools --no-skills --no-prompt-templates --no-themes --no-context-files --no-session --system-prompt "$system_prompt" --print "$@")
 
-# Extract content between the last <command>...</command> tags (supports multiline)
-clean="$(echo "$raw_output" | tr '\n' '\x00' | grep -o '<command>[^<]*</command>' | tail -1 | tr '\x00' '\n' | sed -e 's/^<command>//' -e 's/<\/command>$//' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | sed -e '/^$/d')"
-
-if [ -z "$clean" ]; then
-  echo "Error: no <command> tag found in output" >&2
-  exit 1
+if [[ -t 1 ]]; then
+  # If the script is running in an interactive terminal, prompt the user for confirmation before executing the command.
+  echo "$cmd"
+  printf 'Execute? [y/N] ' >&2; 
+  read -r confirm
+  if [[ "$confirm" =~ ^[Yy]$ ]]; then
+    eval "$cmd"
+  else
+    exit 1
+  fi
+else
+  # If not running interactively, write the command to stdout.
+  echo "$cmd"
 fi
-
-echo "$clean"
