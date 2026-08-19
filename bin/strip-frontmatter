@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# Outputs everything after the second "---" line (the frontmatter closing delimiter).
+awk '/^---$/{n++; if(n==2){found=1; next}} found{print}' "$@"
