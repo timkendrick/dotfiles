@@ -51,10 +51,7 @@ Analyze the code in detail and identify all potential issues introduced by the c
 To identify an potential issue, add a `FIXME` comment above the relevant line of code, along with a brief description of the issue and freeform points for discussion. For example:
 
 ```typescript
-// FIXME: This function does not handle the edge case where sourceWidth is zero, which would lead to an infinite size ratio
-// Question: is this possible in practice?
-// If so, we should add a check to prevent this.
-// If not, we should add a comment explaining why this is not possible
+// FIXME: This function does not handle the edge case where sourceWidth is zero, which would lead to an infinite size ratio. Is this possible in practice? If so, we should add a check to prevent this. If not, we should add a comment explaining why this is not possible
 function getFullScreenSizeRatio(sourceWidth: number, targetWidth: number): number {
   return targetWidth / sourceWidth;
 }
