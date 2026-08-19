@@ -90,6 +90,14 @@ pi-list-prompt-paths() {
 }
 
 pi-prompt() {
+  # If no arguments are provided, list all available prompts
+  if [[ $# -eq 0 ]]; then
+    pi-list-prompt-paths | while IFS= read -r prompt_path; do
+      echo "/${prompt_path:t:r}"
+    done
+    return 0
+  fi
+
   local query="$1"
   shift
   local args=("$@")
