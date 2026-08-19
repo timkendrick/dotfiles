@@ -7,8 +7,7 @@
     "npm:pi-md-export",
     "npm:pi-powerline-footer",
     "npm:pi-system-prompt",
-    "npm:pi-web-providers",
-    "npm:visual-explainer"
+    "npm:pi-web-providers"
   ],
   "defaultTools": [
     "read",
