@@ -1,0 +1,19 @@
+#compdef pi-skill
+#description print the contents of a named pi skill
+
+# Session-scoped cache for extension paths (populated on first completion invocation)
+typeset -g _pi_skill_extension_paths
+
+_pi-skill() {
+  if [[ -z "$_pi_skill_extension_paths" ]]; then
+    _pi_skill_extension_paths="$(pi-list-extension-paths 2>/dev/null)"
+  fi
+
+  local -a skills
+  skills=(${(f)"$(PI_EXTENSION_PATHS="$_pi_skill_extension_paths" pi-list-skill-paths 2>/dev/null | while IFS= read -r path; do echo "${path:h:t}"; done)"})
+
+  _arguments \
+    '1:skill name:(${skills[@]})'
+}
+
+_pi-skill "$@"

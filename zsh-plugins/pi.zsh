@@ -153,6 +153,53 @@ pi-prompt() {
   sed "${arg_substitutions[@]}" < "$prompt_path"
 }
 
+pi-list-skill-paths() {
+  for skill in ".pi/agent/skills"/*/SKILL.md(N) "$HOME/.pi/agent/skills"/*/SKILL.md(N); do
+    echo "$skill"
+  done
+  local extension_paths="${PI_EXTENSION_PATHS:-$(pi-list-extension-paths)}"
+  while IFS= read -r extension; do
+    while IFS= read -r skill_dir; do
+      realpath "${extension}/${skill_dir}/SKILL.md"
+    done < <(jq --raw-output 'select(.pi.skills) | .pi.skills[]' < "$extension"/package.json)
+  done <<< "$extension_paths"
+}
+
+pi-skill() {
+  # If no arguments are provided, list all available skills
+  if [[ $# -eq 0 ]]; then
+    pi-list-skill-paths | while IFS= read -r skill_path; do
+      echo "${skill_path:h:t}"
+    done
+    return 0
+  fi
+
+  local name="$1"
+
+  if [[ -z "$name" ]]; then
+    echo "Error: skill name required" >&2
+    return 1
+  fi
+
+  local skill_path
+  # List all local skills
+  # Find all skill paths across all extensions
+  # Locate the first skill path whose parent directory name matches the provided name
+  skill_path=$(pi-list-skill-paths | while IFS= read -r skill_path; do
+    if [[ "${skill_path:h:t}" == "$name" ]]; then
+      echo "$skill_path"
+      break
+    fi
+  done)
+
+  if [[ -z "$skill_path" ]]; then
+    echo "Error: no skill found matching '$name'" >&2
+    return 1
+  fi
+
+  cat "$skill_path"
+}
+
 pi-list-models() {
   jq --raw-output '.enabledModels.[]' ~/.pi/agent/settings.json
 }
