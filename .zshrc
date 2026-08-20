@@ -103,13 +103,20 @@ done
 _PROMPT_BASE="${PROMPT}"
 _PROMPT_MODIFIER_FNS=()
 
-for prompt_plugin in "$ZSH_PROMPTS_PATH"/*.zsh(ND); do
+# Load custom prompt plugins, sorted by filename ignoring any leading dot
+local -a _prompt_plugin_paths=()
+local _prompt_file
+for _prompt_file in "$ZSH_PROMPTS_PATH"/*.zsh(ND); do
+    _prompt_plugin_paths+=("${${_prompt_file:t}#.}"$'\1'"$_prompt_file")
+done
+local _prompt_plugin
+for _prompt_plugin in "${(@o)_prompt_plugin_paths}"; do
+    local prompt_plugin="${_prompt_plugin#*$'\1'}"
     load_module "$prompt_plugin"
-    # Derive function name: .00-kubectl.zsh -> _prompt_kubectl
-    local _fn_name="${${prompt_plugin:t}%.zsh}"
-    _fn_name="${_fn_name#.}"        # strip leading dot
-    _fn_name="${_fn_name#*([0-9])-}" # strip ordinal prefix (e.g. 00-)
-    _fn_name="${_fn_name//-/_}"        # convert hyphens to underscores
+    # Derive function name: .04-aws-session.zsh -> _prompt_aws_session
+    local _fn_name="${${_prompt_plugin%%$'\1'*}%.zsh}"
+    _fn_name="${_fn_name#*([0-9])-}"  # strip ordinal prefix (e.g. 00-)
+    _fn_name="${_fn_name//-/_}"       # convert hyphens to underscores
     _fn_name="_prompt_${_fn_name}"
     _PROMPT_MODIFIER_FNS+=("$_fn_name")
 done
