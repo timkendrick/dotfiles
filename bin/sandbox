@@ -535,4 +535,4 @@ if [[ "$COMMAND_MODE" == false ]]; then
 fi
 
 # Execute the command in the sandbox environment
-exec sandbox-exec -p "$profile_source" -D HOME="$(realpath "$HOME")" -D TMPDIR="$(realpath "$TMPDIR")" "${COMMAND_ARGS[@]}"
+exec env SANDBOX=1 sandbox-exec -p "$profile_source" -D HOME="$(realpath "$HOME")" -D TMPDIR="$(realpath "$TMPDIR")" "${COMMAND_ARGS[@]}"
