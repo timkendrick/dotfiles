@@ -2,7 +2,6 @@ PACKAGE_ROOT=$(realpath "${0:a:h}/..")
 CONFIG_PATH="$PACKAGE_ROOT/config/pi/settings.json"
 USER_CONFIG_PATH="$HOME/.pi/agent/settings.json"
 
-export PI_DE_CLAUDE_USE_DIFF_EDITOR=false
 export PI_OFFLINE=true
 export PI_DEFAULT_TOOLS="read,bash,edit,write,grep,find,ls"
 
