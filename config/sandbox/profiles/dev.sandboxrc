@@ -3,12 +3,12 @@
 --plugin hdiutil
 --plugin system-preferences
 --plugin app-services
---plugin user-caches
 --plugin network
---plugin path
 --plugin allow-read-all-files
 --plugin deny-write-all-files
 --plugin deny-read-home-directory-files
+--plugin user-caches
+--plugin path
 --plugin bash
 --plugin cargo
 --plugin claude
