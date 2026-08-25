@@ -1,0 +1,4 @@
+#!/bin/bash
+set -euo pipefail
+
+git log --oneline | fzf | awk '{ print $1 }'
