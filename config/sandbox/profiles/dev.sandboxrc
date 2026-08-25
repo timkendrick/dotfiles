@@ -8,6 +8,7 @@
 --plugin deny-write-all-files
 --plugin deny-read-home-directory-files
 --plugin user-caches
+--plugin diagnostic-reports
 --plugin path
 --plugin bash
 --plugin cargo
