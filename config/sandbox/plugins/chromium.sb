@@ -1,0 +1,8 @@
+;; Allow Chromium driver permissions
+;; Register Mojo/crashpad ports
+(allow mach-register (global-name-regex #"^org\.chromium\."))
+(allow mach-lookup (global-name-regex #"^org\.chromium\.")) 
+;; Power notifications
+(allow iokit-open (iokit-user-client-class "RootDomainUserClient"))                       
+;; Graphics buffers
+(allow iokit-open (iokit-user-client-class "IOSurfaceRootUserClient"))

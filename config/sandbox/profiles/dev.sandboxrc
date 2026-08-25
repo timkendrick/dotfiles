@@ -12,6 +12,7 @@
 --plugin path
 --plugin bash
 --plugin cargo
+--plugin chromium
 --plugin claude
 --plugin colima
 --plugin docker
