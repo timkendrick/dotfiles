@@ -1,0 +1,2 @@
+;; Allow read+write access to ~/.ssh
+(allow file-read* file-write* (literal (string-append (param "HOME") "/.ssh")))
