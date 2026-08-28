@@ -42,11 +42,12 @@ Analyze the code in detail and identify all potential issues introduced by the c
 
 - Be militant about DRY. If you see similar code repeated in more than one place, consider whether it can be abstracted into a reusable function or component.
 - This includes repetition of prior code: new additions should not duplicate existing code. If existing code has been duplicated, the common logic needs to be extracted out into a shared utility function or component and update the prior call site.
+- All 'magic constants' should be extracted into named variables rather than inlined into the code.
 - Be suspicious of defensive coding. Rigid types should be used to ensure correctness rather than adding extra checks in the code.
 - Look at each line of code that has been added. Does this line of code need to exist? Is it purely there to maintain backwards compatibility? If so, it should be flagged for potential removal.
 - Have the changes resulted in dead code, including unused parameters or variables? If so, this code should be flagged for removal.
 - Pay particular attention to all comments introduced by the change. Are there any comments that indicate a workaround or hack? If so, this is a red flag that the code may need to be refactored.
-- Are there comments that relate to the *process* of the change (e.g. `// Updated condition to handle edge case`) rather than the code itself? If so, these comments should be flagged for removal as they do not add value to future readers.
+- Are there 'historical' comments that relate to the *process* of the change (e.g. `// Changed behavior to handle edge case`) or out-of-band documents (e.g. // Fixes Requirement R6) rather than the code logic itself? If so, these comments should be flagged for removal as they do not add value to future readers.
 
 To identify an potential issue, add a `FIXME` comment above the relevant line of code, along with a brief description of the issue and freeform points for discussion. For example:
 
