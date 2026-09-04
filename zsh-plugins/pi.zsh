@@ -266,3 +266,27 @@ pi() {
   # Execute the `pi` command with the selected model and thinking level, relaying any other arguments
   command pi "${selected_args[@]}" "$@"
 }
+
+# Lists the PIDs of any active `pi` processes whose working directory is the given
+# path (defaults to the current directory). Exits non-zero if none are found.
+pi-session-pid() {
+  local dir
+  dir=$(realpath "${1:-$PWD}") || return 1
+  if [[ ! -d "$dir" ]]; then
+    echo "Error: not a directory: ${1:-$PWD}" >&2
+    return 1
+  fi
+
+  # Collect the PIDs of all processes whose working directory is the specified directory
+  local -a candidates
+  candidates=(${(f)"$(lsof -a -d cwd -F p -- "$dir" 2>/dev/null | sed -n 's/^p//p')"})
+  (( ${#candidates} )) || return 1
+
+  # Retain only those processes invoked as `pi`
+  # (lsof reports the underlying `node` executable, so it can't filter these itself)
+  local -a pids
+  pids=(${(f)"$(ps -o pid= -o comm= -p ${(j:,:)candidates} | awk '$2 ~ /(^|\/)pi$/ { print $1 }')"})
+
+  (( ${#pids} )) || return 1
+  printf '%s\n' "${pids[@]}"
+}
