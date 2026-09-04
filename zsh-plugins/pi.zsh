@@ -74,7 +74,7 @@ pi-uninstall() {
 }
 
 pi-list-extension-paths() {
-  pi list 2>/dev/null | grep -E '^    /' | sed 's/^    //'
+  command pi list 2>/dev/null | grep -E '^    /' | sed 's/^    //'
 }
 
 pi-list-prompt-paths() {
@@ -211,4 +211,54 @@ pi-list-thinking() {
   echo "medium"
   echo "high"
   echo "xhigh"
+}
+
+# Wrapper function for the `pi` command that provides user-selected model and thinking level for interactive chat sessions
+pi() {
+  # Bypass the model picker for any subcommands / args that don't start an interactive chat session
+  local -a noninteractive_subcommands=(install remove uninstall update list config auth)
+  local -a noninteractive_flags=(--help -h --version -v --list-models --print -p --mode)
+
+  # Determine whether model or thinking selection should be applied depending on how the function is called
+  local bypass_model_selection=0 bypass_thinking_selection=0
+  if [[ ! -t 0 ]]; then
+    # Skip model/thinking selection for non-interactive stdin (e.g. piped input) 
+    bypass_model_selection=1 bypass_thinking_selection=1
+  elif (( ${noninteractive_subcommands[(Ie)$1]} )); then
+    # Skip model/thinking selection for noninteractive subcommands
+    bypass_model_selection=1 bypass_thinking_selection=1
+  else
+    # Parse provided args to determine whether model or thinking selection should be skipped
+    local arg
+    for arg in "$@"; do
+      case "$arg" in
+        # Everything after `--` is a positional argument, not a flag
+        --) break ;;
+        --model) bypass_model_selection=1 ;;
+        --thinking) bypass_thinking_selection=1 ;;
+        # Skip model/thinking selection when resuming an existing chat session
+        --resume|-r) bypass_model_selection=1 bypass_thinking_selection=1; break ;;
+        # Skip model/thinking selection for noninteractive subcommands
+        *) (( ${noninteractive_flags[(Ie)$arg]} )) && { bypass_model_selection=1 bypass_thinking_selection=1; break } ;;
+      esac
+    done
+  fi
+
+  # Prompt the user for model and thinking level selections
+  local -a selected_args=()
+  if (( ! bypass_model_selection )); then
+    local model
+    model=$(pi-list-models | fzf --header "Choose a model") || return
+    [[ -z "$model" ]] && return 130
+    selected_args+=(--model "$model")
+  fi
+  if (( ! bypass_thinking_selection )); then
+    local thinking
+    thinking=$(pi-list-thinking | fzf --header "Thinking level") || return
+    [[ -z "$thinking" ]] && return 130
+    selected_args+=(--thinking "$thinking")
+  fi
+
+  # Execute the `pi` command with the selected model and thinking level, relaying any other arguments
+  command pi "${selected_args[@]}" "$@"
 }
