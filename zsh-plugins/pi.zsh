@@ -201,6 +201,10 @@ pi-skill() {
 }
 
 pi-list-models() {
+  if [[ "$1" == "--all" ]]; then
+    command pi --list-models | tail -n +2 | awk '{print $1"/"$2}'
+    return
+  fi
   jq --raw-output '.enabledModels.[]' ~/.pi/agent/settings.json
 }
 
