@@ -6,6 +6,7 @@
     "npm:@tintinweb/pi-tasks",
     "npm:pi-caffeinate",
     "npm:pi-compact-transcript",
+    "npm:pi-goal-x",
     "npm:pi-md-export",
     "npm:pi-powerline-footer",
     "npm:pi-system-prompt",
