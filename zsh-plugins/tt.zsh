@@ -1,5 +1,5 @@
 export TT_SELECT=fzf
-export TT_VERBOSE=1
+export TT_LOG=info
 
 alias tt-worktree-select='cd "$(tt worktree show --name "$(tt worktree list --quiet | fzf)" || echo ".")"'
 alias tt-worktree-delete-current='tt worktree delete --force "$(tt worktree show --name "$(tt current)")" && exit'
