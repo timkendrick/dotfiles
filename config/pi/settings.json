@@ -26,5 +26,9 @@
   "treeFilterMode": "no-tools",
   "warnings": {
     "anthropicExtraUsage": false
+  },
+  "retry": {
+    "baseDelayMs": 1000,
+    "maxRetries": 15
   }
 }
