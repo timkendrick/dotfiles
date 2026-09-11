@@ -2,7 +2,7 @@
 complete -C "$(which aws_completer)" aws
 
 # Login to AWS account via SSO and set environment variables
-alias aws-session='aws sso login && eval $(aws configure export-credentials --format env)'
+alias aws-session='aws sts get-caller-identity &> /dev/null || aws sso login && eval $(aws configure export-credentials --format env)'
 
 # Expose AWS environment variables to the prefixed command
 # Use with AWS_PROFILE=... environment variable to invoke the command with the specified profile
