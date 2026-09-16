@@ -1,0 +1,4 @@
+;; Allow read-only access to ~/.storybook
+(allow file-read* (subpath (string-append (param "HOME") "/.storybook")))
+;; Allow read+write access to ~/.storybook/settings.json
+(allow file-read* file-write* (literal (string-append (param "HOME") "/.storybook/settings.json")))

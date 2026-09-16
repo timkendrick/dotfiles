@@ -28,6 +28,7 @@
 --plugin plannotator
 --plugin pnpm
 --plugin rustup
+--plugin storybook
 --plugin tt
 --plugin vcs
 --plugin vim
