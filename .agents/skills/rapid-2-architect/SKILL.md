@@ -16,4 +16,6 @@ Present the user with illustrative code snippets such as the following:
 - Call stack traces to illustrate high-level control flow
 - Pseudocode for algorithm overviews
 
+Run empirical probes to verify any assumptions.
+
 This is still primarily an information-gathering stage; there is no need to produce a full implementation plan.
