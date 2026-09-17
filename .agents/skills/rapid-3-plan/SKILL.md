@@ -8,7 +8,11 @@ Your goal is to analyze the task requirements and architectural decisions and co
 
 The output of this session will be a `.agents/plans/*.plan.md` markdown file that contains a comprehensive plan that can be executed in isolation from any chat context by a competent junior developer with no knowledge of the project.
 
-The plan is intended to be analyzed in isolation from any chat context and should therefore be standalone and exhaustive. Do not assume any user knowledge, judgement, or decision-making ability, and do not assume any familiarity with the existing codebase.
+The plan is intended to be analyzed in isolation from any chat context and should therefore be standalone and exhaustive. The implementor will have access to the output of previous steps, but no further background on the current task.
+
+Do not assume any user knowledge, judgement, or decision-making ability, and do not assume any familiarity with the existing codebase.
+
+Before starting the plan, review the outputs of the previous steps and perform any empirical validation necessary to ensure all implications of the decisions have been considered and that the approach is verifiably feasible.
 
 The plan should contain an executive summary, with a high-level description of the task, followed by these 'recap' sections:
 
@@ -27,7 +31,7 @@ The plan should contain an executive summary, with a high-level description of t
 > 
 > - An overview of the key decisions that will guide implementation
 
-…then once these sections have been written to the markdown file, work section by section with the user, presenting a draft plan for each section to the user for feedback and asking questions for clarification (including suggesting alternatives), appending the fully-drafted section to the document only once the user has approved it:
+…then once these sections have been written to the markdown file, work section by section with the user, presenting a draft summary for each section to the user for feedback and asking questions for clarification (including suggesting alternatives), appending the fully-drafted section to the document only once the user has approved it:
 
 > ## 4. Technical strategy
 > 
