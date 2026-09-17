@@ -16,7 +16,7 @@ Once all implementation details have been determined, present the user with a co
 
 Do not perform any actions without having been instructed by the user, either directly or via a response to a question. If you would like to perform an action but it has not yet been authorized, ask the user to confirm before proceeding. 
 
-When presenting the user with a 'fork in the road' to choose one of several potential design paths with non-trivial implementation consequences, explain each path thoroughly in plain technical English with worked examples – don't assume the user understands a terse jargon-riddled statement of the problme.
+When presenting the user with a 'fork in the road' to choose one of several potential design paths with non-trivial implementation consequences, explain each path thoroughly and clearly in plain technical English with worked examples – don't use terse jargon in an attempt to save space.
 
 ## Coding guidelines
 
