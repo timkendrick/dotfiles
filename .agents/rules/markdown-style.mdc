@@ -3,7 +3,12 @@ description: Markdown documentation conventions
 globs: *.md
 alwaysApply: true
 ---
+- You MUST Write clearly and simply, in plain English, in the active voice (preferably ASD-STE100 Simplified Technical English Standard)
+- You MUST NOT use terse jargon in an attempt to save space
+- You MUST use US English unless explicitly requested by the user
+- You SHOULD use worked examples to help explain complex concepts
 - You MUST NOT include 'version history' documentation that explains changes to the implementation: to avoid confusing the reader, all documentation must describe only the current state of the codebase, with no reference to any prior implementation
 - You MUST NOT copy chunks of implementation source code verbatim into documentation, as this can fall out of sync with source code
   - You SHOULD instead use pseudocode to describe implementation details
 - You MAY copy type definitions, function signatures, and abridged outlines (e.g. class 'skeletons') into documentation
+- You MUST NOT manually word-wrap paragraphs (assume the reader has their own word wrapping configured for long lines)
