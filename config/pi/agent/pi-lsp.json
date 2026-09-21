@@ -1,0 +1,97 @@
+{
+  "tsc": {
+    "command": ["tsc", "--lsp", "--stdio"],
+    "extensions": [".ts", ".tsx"]
+  },
+  "biome": {
+    "command": [
+      "biome",
+      "lsp-proxy"
+    ],
+    "extensions": [
+      ".astro",
+      ".css",
+      ".cts",
+      ".cjs",
+      ".graphql",
+      ".gql",
+      ".html",
+      ".js",
+      ".json",
+      ".jsonc",
+      ".jsx",
+      ".mjs",
+      ".mts",
+      ".svelte",
+      ".vue"
+    ]
+  },
+  "ty": {
+    "command": [
+      "ty",
+      "server"
+    ],
+    "extensions": [
+      ".py",
+      ".pyi"
+    ]
+  },
+  "ruff": {
+    "command": [
+      "ruff",
+      "server"
+    ],
+    "extensions": [
+      ".py",
+      ".pyi"
+    ]
+  },
+  "rust-analyzer": {
+    "command": [
+      "rust-analyzer"
+    ],
+    "extensions": [
+      ".rs"
+    ],
+    "pullDiagnosticsGraceMs": 5000
+  },
+  "yaml-language-server": {
+    "command": [
+      "yaml-language-server",
+      "--stdio"
+    ],
+    "extensions": [
+      ".yaml",
+      ".yml"
+    ]
+  },
+  "bash-language-server": {
+    "command": [
+      "bash-language-server",
+      "start"
+    ],
+    "extensions": [
+      ".sh",
+      ".bash"
+    ]
+  },
+  "terraform-ls": {
+    "command": [
+      "terraform-ls",
+      "serve"
+    ],
+    "extensions": [
+      ".tf",
+      ".tfvars"
+    ],
+    "skipDirectories": [
+      ".terraform"
+    ],
+    "pushDiagnosticsGraceMs": 2000,
+    "initialization": {
+      "experimentalFeatures": {
+        "prefillRequiredFields": true
+      }
+    }
+  }
+}
