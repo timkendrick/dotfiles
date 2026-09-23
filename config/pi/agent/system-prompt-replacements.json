@@ -6,7 +6,7 @@
   },
   {
     "provider": "anthropic",
-    "pattern": "/\\n\\nPi documentation.*?\\n\\n/s",
+    "pattern": "/\\n<docs>\\nPi documentation.*?\\n</docs>/s",
     "replacement": "\n\n"
   }
 ]
