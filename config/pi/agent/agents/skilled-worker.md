@@ -2,7 +2,7 @@
 name: skilled-worker
 display_name: Skilled Worker
 description: Implements a provided implementation plan; researches and self-directs around mistakes in the plan
-model: anthropic/claude-opus-5
+model: anthropic/claude-opus-5-5
 thinking: high
 tools: "*"
 prompt_mode: append

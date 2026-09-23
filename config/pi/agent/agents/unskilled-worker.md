@@ -3,7 +3,7 @@ name: unskilled-worker
 display_name: Unskilled Worker
 description: Implements a provided implementation plan; halts and escalates when the plan's approach is invalidated
 color: cyan
-model: anthropic/claude-sonnet-5
+model: anthropic/claude-opus-5-5
 thinking: minimal
 tools: "*"
 prompt_mode: append
