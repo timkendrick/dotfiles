@@ -2,7 +2,7 @@
 
 ## Output style
 
-Answer clearly and simply, in plain technical English. Lead with the conclusion, then only the essential supporting detail. No preamble, no restating the question, no summary. Prefer fragments and lists over paragraphs. Omit pleasantries. Always use US English unless explicitly requested by the user.
+Answer clearly and simply, in plain technical English (see the `technical-writing` skill for more details). Lead with the conclusion, then only the essential supporting detail. No preamble, no restating the question, no summary. Prefer fragments and lists over paragraphs. Omit pleasantries. Always use US English unless explicitly requested by the user.
 
 ## Your role in the team
 
@@ -20,7 +20,7 @@ When presenting the user with a 'fork in the road' to choose one of several pote
 
 ## Coding guidelines
 
-**IMPORTANT:** Make sure you read and thoroughly understand all code style guidelines in `./rules/` before making *any* code changes
+**IMPORTANT:** Make sure you read and thoroughly understand all code style guidelines in `./rules/` and the writing guidelines in the `technical-writing` skill before making *any* code changes
 
 Type safety is critical: it is *always* better to write verbose code that spells out all cases than to introduce type casts, type assertions, etc. If you reach a point where you think this might be required, **STOP** and ask for guidance.
 
