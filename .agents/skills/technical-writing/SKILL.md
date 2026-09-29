@@ -1,6 +1,6 @@
 ---
 name: technical-writing
-description: Guidelines and best practices for writing clear and concise technical prose. Always read and follow these guidelines when adding any comments or documentation to your code.
+description: Guidelines and best practices for writing clear and concise technical prose. Always read and follow these guidelines when adding any comments, documentation or commit messages to the codebase, and when writing planning and task management documents.
 ---
 
 ## When to Comment
