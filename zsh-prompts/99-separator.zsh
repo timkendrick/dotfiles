@@ -2,7 +2,8 @@
 _prompt_separator() {
   local prompt="$1"
   local suffix=""
-  local last_char="${prompt[-1]}"
+  local expanded="${(%)prompt}"
+  local last_char="${expanded[-1]}"
   if [[ -n "$last_char" && "$last_char" != [[:ascii:]] ]]; then
     suffix=" "
   fi
