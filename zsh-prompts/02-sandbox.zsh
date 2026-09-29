@@ -3,7 +3,7 @@ _prompt_sandbox() {
   local prompt="$1"
   local suffix=""
   if [[ -n "$SANDBOX" ]]; then
-    suffix="🔒"
+    suffix="%{🔒%2G%}"
   fi
   print -n "${prompt}${suffix}"
 }
