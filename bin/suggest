@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Endpoint for the local OpenAI-compatible API
+OLLAMA_ENDPOINT="http://localhost:11434/api/chat"
+
+# Model for natural language to shell command conversion
+NL2SH_MODEL="hf.co/ThorOdinson246/nl2sh-1.5b-Q4_K_M:Q4_K_M"
+
+# Generate system prompt
+SHELL_NAME="$(basename "${SHELL:-bash}")"
+KERNEL_NAME="$(uname -s)"
+RULES=(
+  "Output a one-line shell command that accomplishes the user's request. No prose, no markdown fences, no explanation."
+  "Only print the command most likely to match the user's intent. Do not print multiple options or alternatives."
+  "Spell out ALL CLI flags in full (e.g., prefer --recursive over -R, --verbose over -v). Never use abbreviated or short-form flags."
+  "Prefer standard, widely-available tools (GNU coreutils, curl, jq, etc.)."
+  "If the user explicitly asks about a less common 3rd-party CLI tool (e.g. jj), use context7 to look up its documentation before generating the command."
+  "The user's current shell is ${SHELL_NAME} (${KERNEL_NAME}). Only generate commands that are compatible with this shell."
+)
+SYSTEM_PROMPT="You are a shell command generator. Follow these rules strictly:
+$(printf -- '- %s\n' "${RULES[@]}")"
+
+is_empty() {
+  [[ -z "${1//[[:space:]]/}" ]]
+}
+
+# Get the prompt from command line arguments, or via prompting the user, or from piped stdin.
+if [[ $# -gt 0 ]]; then
+  prompt="$*"
+elif [[ -t 0 ]]; then
+  prompt="$(edit)"
+else
+  prompt="$(cat)"
+fi
+
+if is_empty "$prompt"; then
+  echo "Usage: suggest <prompt>" >&2
+  exit 1
+fi
+
+execute_request() {
+  local prompt="$1"
+  jq --null-input \
+    --arg model "$NL2SH_MODEL" \
+    --arg system "$SYSTEM_PROMPT" \
+    --arg prompt "$prompt" \
+    '{
+      model: $model,
+      messages: [
+        { role: "system", content: $system },
+        { role: "user", content: $prompt }
+      ],
+      stream: false
+    }' |
+    curl --silent --fail "$OLLAMA_ENDPOINT" --data @- |
+    jq --raw-output '.message.content'
+}
+
+# Generate the command and output it or prompt the user.
+while true; do
+  # When running interactively, display the prompt formatted as a comment.
+  [[ -t 1 ]] && echo "$prompt" | sed 's/^/# /' >&2
+  # Generate the shell command using the local model.
+  cmd="$(execute_request "$prompt")"
+  # If not running interactively, output the generated command and exit immediately.
+  if [[ ! -t 1 ]]; then                                                                                                                                                                                                                                                                                            
+    echo "$cmd"
+    exit 0                                                                                                                                                                                                                                                                                                         
+  fi
+  # Display the generated command to the user.
+  echo "$cmd" >&2
+  # Prompt the user whether they want to execute the generated command, edit it, or exit.
+  while true; do
+    printf 'Execute? [y/N/e] ' >&2
+    read -r -s -n 1 key </dev/tty
+    printf '%s\n' "$key" >&2
+    case "$key" in
+      [Yy])
+        eval "$cmd"
+        exit
+        ;;
+      [Nn] | "")
+        echo "$cmd"
+        exit 0
+        ;;
+      [Ee])
+        prompt="$(printf '%s' "$prompt" | edit)"
+        if is_empty "$prompt"; then
+          continue 1
+        fi
+        continue 2
+        ;;
+      *)
+        echo "Invalid option: $key" >&2
+        continue 1
+        ;;
+    esac
+  done
+done
