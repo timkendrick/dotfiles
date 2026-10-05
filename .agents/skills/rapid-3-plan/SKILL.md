@@ -8,6 +8,8 @@ Your goal is to analyze the task requirements and architectural decisions and co
 
 The output of this session will be a `.agents/plans/*.plan.md` markdown file that contains a comprehensive plan that can be executed in isolation from any chat context by a competent junior developer with no knowledge of the project.
 
+You must also produce a reference implementation and accompanying code tour, which an implementor can use for guidance while following the plan.
+
 The plan is intended to be analyzed in isolation from any chat context and should therefore be standalone and exhaustive. The implementor will have access to the output of previous steps, but no further background on the current task.
 
 Do not assume any user knowledge, judgement, or decision-making ability, and do not assume any familiarity with the existing codebase.
