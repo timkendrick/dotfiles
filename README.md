@@ -25,6 +25,13 @@ mkdir -p ~/.vim/pack
 ln -s ~/.config/dotfiles/vim-plugins ~/.vim/pack/dotfiles
 ```
 
+Register `nvim` configuration:
+
+```bash
+scripts/link-config-dir --depth 0 config/nvim ~/.config/nvim
+scripts/merge-json ~/.config/nvim/lazyvim.json < config/lazyvim/lazyvim.json
+```
+
 Register `pi` agent configuration:
 
 ```bash

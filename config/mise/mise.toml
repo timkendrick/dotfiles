@@ -47,6 +47,11 @@ watchexec = "latest"
 "npm:typescript" = "latest"
 "npm:typescript-language-server" = "latest"
 "npm:yaml-language-server" = "latest"
+neovim = "latest"
+lazygit = "latest"
+tree-sitter = "latest"
+ripgrep = "latest"
+tmux = "latest"
 
 [settings]
 experimental = true
