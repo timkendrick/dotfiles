@@ -35,7 +35,7 @@ Always follow these guidelines when writing code comments and technical document
 - no noun clusters of >3 stacked nouns
 - no unnecessary filler words: be direct
 - use simple tenses: infinitive, imperative, simple present, simple past, simple future, and past participle as adjective. do not use present perfect and other compound forms.
-- no poetic phrasing: rather than "the data is accessed, never cached" just say "the data is not cached."
+- no unnecessary absolutes: say "the result is not cached" rather than "the result is never cached".
 - always use US English unless explicitly requested by the user.
 
 ## Bad Habits Checklist
