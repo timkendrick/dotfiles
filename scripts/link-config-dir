@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 # Recursively symlink all files from a source directory into a target directory.
-# Usage: link-config-dir <source> <target> [--dry-run] [--rename <pattern>] ...
+# Usage: link-config-dir <source> <target> [--dry-run] [--depth <n>] [--rename <pattern>] ...
 set -euo pipefail
 
 usage() {
   cat <<EOF
-Usage: link-config-dir <source> <target> [--dry-run] [--rename <pattern>] ...
+Usage: link-config-dir <source> <target> [--dry-run] [--depth <n>] [--rename <pattern>] ...
 
 Recursively symlink all files from <source> into <target>, preserving directory structure.
 
 Options:
   --dry-run              Print actions without executing them
+  --depth <n>            Only recurse into <n> levels of subdirectories; directories beyond this
+                         depth are symlinked directly. 0 symlinks all immediate children of <source>.
+                         Defaults to unlimited depth.
   --rename <pattern>     Apply a regex substitution to change the basenames of output paths.
                          Example: 's/^path\/to\/oldname$/newname/'
                          These replacements apply to both files and directories, however they do not
@@ -22,11 +25,17 @@ EOF
 }
 
 dry_run=false
+max_depth=-1
 rename_exprs=()
 args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) dry_run=true; shift ;;
+    --depth)
+      if [[ ! "${2:-}" =~ ^[0-9]+$ ]]; then
+        echo "--depth requires a non-negative integer" >&2; exit 1
+      fi
+      max_depth="$2"; shift 2 ;;
     --rename) rename_exprs+=("$2"); shift 2 ;;
     --) shift; args+=("$@"); break ;;
     -*) echo "Unknown option: $1" >&2; exit 1 ;;
@@ -54,13 +63,16 @@ run() {
 # Perform a depth-first traversal of the source directory,
 # linking all non-directory files into the target directory,
 # preserving the source directory structure in the target directory.
-stack=("$src:$dst")
+# Each stack entry is "<depth>:<source dir>:<target dir>", where <depth> is the
+# number of directory levels already traversed below <source>.
+stack=("0:$src:$dst")
 while [ ${#stack[@]} -gt 0 ]; do
   entry="${stack[@]:0:1}"; stack=("${stack[@]:1}")
+  depth="${entry%%:*}"; entry="${entry#*:}"
   s="${entry%%:*}"; d="${entry##*:}"
   run mkdir -p "$d"
   for file in "$s"/*; do
-    if [ -d "$file" ] && [ ! -L "$file" ]; then
+    if [ -d "$file" ] && [ ! -L "$file" ] && { [ "$max_depth" -lt 0 ] || [ "$depth" -lt "$max_depth" ]; }; then
       dir_rel_path="${file#"$src/"}"
       dir_name="$(basename "$file")"
       for expr in ${rename_exprs[@]+"${rename_exprs[@]}"}; do
@@ -70,7 +82,7 @@ while [ ${#stack[@]} -gt 0 ]; do
           break
         fi
       done
-      stack+=("$file:$d/$dir_name")
+      stack+=("$((depth + 1)):$file:$d/$dir_name")
     else
       target="$(realpath "$file")"
       name="$(basename "$file")"
