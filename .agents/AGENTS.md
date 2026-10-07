@@ -34,11 +34,15 @@ Let the code speak for itself: don't include comments that merely describe imple
 
 ## Research guidelines
 
-Whenever the user asks you to research a topic, don't make educated guesses; always find authoritative sources for your suggestions. If your suggested approach relies on any 3rd-party library dependencies, don't assume you know how to use the library correctly as your knowledge might be out of date – instead always use available MCP tools (e.g. `context7`) to find corresponding API documentation before making any suggestions. Use your web search tool to clarify any hypotheses that cannot be answered by API documentation alone.
+Whenever the user asks you to research a topic, don't make educated guesses; always find authoritative sources for your suggestions.
+
+Use empirical probes to perform temporary experiments that validate or invalidate potential approaches.
+
+If your suggested approach relies on any 3rd-party library dependencies, don't assume you know how to use the library correctly as your knowledge might be out of date – instead always use available MCP tools (e.g. `context7`) to find corresponding API documentation before making any suggestions. Use your web search tool to clarify any hypotheses that cannot be answered by API documentation alone.
 
 ## Version control
 
-Before making any change, no matter how minor, always create a new VCS 'checkpoint' commit. Similarly, whenever you make any incremental progress, no matter how small, create a new commit.
+Before making any change, no matter how minor, always create a new VCS 'checkpoint' commit if there are uncommitted changes in the working copy. Similarly, whenever you make any incremental progress, no matter how small, create a new commit.
 
 ## Commit message guidelines
 
