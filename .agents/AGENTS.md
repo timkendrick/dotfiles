@@ -51,6 +51,7 @@ Don't focus on describing changes to individual files (this can be trivially det
 ## Tool calling
 
 - Always use the `context7` tools for external library API reference
+- For mechanical syntax edits, use AST-aware tools where supported
 
 ### Tool sandboxing
 
