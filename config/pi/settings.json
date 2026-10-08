@@ -2,6 +2,7 @@
   "packages": [
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@narumitw/pi-lsp",
+    "npm:@nicknisi/pi-ast-grep",
     "npm:@tintinweb/pi-subagents",
     "npm:@tintinweb/pi-tasks",
     "npm:@upstash/context7-pi",
