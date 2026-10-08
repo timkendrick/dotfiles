@@ -241,7 +241,7 @@ pi() {
         --model) bypass_model_selection=1 ;;
         --thinking) bypass_thinking_selection=1 ;;
         # Skip model/thinking selection when resuming an existing chat session
-        --resume|-r) bypass_model_selection=1 bypass_thinking_selection=1; break ;;
+        --resume|-r|--session) bypass_model_selection=1 bypass_thinking_selection=1; break ;;
         # Skip model/thinking selection for noninteractive subcommands
         *) (( ${noninteractive_flags[(Ie)$arg]} )) && { bypass_model_selection=1 bypass_thinking_selection=1; break } ;;
       esac
