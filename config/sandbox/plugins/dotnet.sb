@@ -1,4 +1,5 @@
 ;; Allow read+write access to ~/.dotnet and ~/.nuget
 (allow file-read* file-write* (subpath (string-append (param "HOME") "/.dotnet")))
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/Library/Application Support/dotnet/runfile/")))
 (allow file-read* file-write* (subpath (string-append (param "HOME") "/.nuget")))
 (allow file-read* file-write* (subpath (string-append (param "HOME") "/.local/share/NuGet/http-cache")))
