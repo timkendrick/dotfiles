@@ -73,7 +73,7 @@ load_env() {
         echo "[dotfiles] sourcing ${file:t}…" >&2
     fi
     local vars                                                                                                                                   
-    vars=$(< "$file" grep -v '#' | xargs)                                                                                                        
+    vars=$(< "$file" grep -v '^#' | xargs)                                                                                                        
     [[ -n "$vars" ]] && export ${(z)vars}  
 }
 
