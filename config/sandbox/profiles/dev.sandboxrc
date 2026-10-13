@@ -17,6 +17,7 @@
 --plugin colima
 --plugin docker
 --plugin dotnet
+--plugin duckdb
 --plugin git
 --plugin helm
 --plugin jj
