@@ -1,5 +1,3 @@
-load_completions mise 'mise completion zsh'
-
 mise-list-npm-packages() {
   mise ls --json | jq -r 'keys[]' | grep '^npm:'
 }
