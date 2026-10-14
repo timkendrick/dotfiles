@@ -22,6 +22,7 @@ PACKAGE_ROOT="${0:a:h}"
 
 BIN_PATH="$PACKAGE_ROOT/bin"
 ZSH_ENV_PATH="$PACKAGE_ROOT/zsh-env"
+ZSH_FPATH_PATH="$PACKAGE_ROOT/zsh-fpath"
 ZSH_PLUGINS_PATH="$PACKAGE_ROOT/zsh-plugins"
 ZSH_PROMPTS_PATH="$PACKAGE_ROOT/zsh-prompts"
 ZSH_COMPLETIONS_PATH="$PACKAGE_ROOT/zsh-completions"
@@ -77,13 +78,35 @@ load_env() {
     [[ -n "$vars" ]] && export ${(z)vars}  
 }
 
+# Helper: append the existing directories listed in a .fpath file to _fpath_dirs
+load_fpath() {
+    local file="$1"
+    if [[ -n "$DOTFILES_DEBUG" ]]; then
+        echo "[dotfiles] sourcing ${file:t}…" >&2
+    fi
+    local line
+    for line in "${(@f)$(<"$file")}"; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        if [[ -d "$line" ]]; then
+            _fpath_dirs+=("$line")
+        elif [[ -n "$DOTFILES_DEBUG" ]]; then
+            echo "[dotfiles] skipping missing fpath entry ${line}" >&2
+        fi
+    done
+}
+
 # Initialize zsh shell environment variables
 for config in "$ZSH_ENV_PATH"/*.env(ND); do
     [[ -f "$config" ]] && load_env "$config"
 done
 
-# Enable custom zsh completions
-FPATH="$ZSH_COMPLETIONS_PATH:$FPATH"
+# Enable custom zsh completions, followed by additional completion directories
+typeset -a _fpath_dirs=()
+for config in "$ZSH_FPATH_PATH"/*.fpath(ND); do
+    load_fpath "$config"
+done
+fpath=("$ZSH_COMPLETIONS_PATH" "${_fpath_dirs[@]}" "${fpath[@]}")
+unset _fpath_dirs
 
 # Activate shell completions
 autoload bashcompinit && bashcompinit

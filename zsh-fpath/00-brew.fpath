@@ -1,0 +1,2 @@
+# Needs to be explicitly specified as `brew shellenv` appends the path after compinit has run
+/opt/homebrew/share/zsh/site-functions
