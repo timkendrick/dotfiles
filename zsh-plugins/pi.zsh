@@ -158,10 +158,14 @@ pi-list-skill-paths() {
     echo "$skill"
   done
   local extension_paths="${PI_EXTENSION_PATHS:-$(pi-list-extension-paths)}"
+  local resolved_dir
   while IFS= read -r extension; do
     while IFS= read -r skill_dir; do
-      realpath "${extension}/${skill_dir}/SKILL.md"
-    done < <(jq --raw-output 'select(.pi.skills) | .pi.skills[]' < "$extension"/package.json)
+      resolved_dir=$(realpath "${extension}/${skill_dir}" 2>/dev/null) || continue
+      for skill in "$resolved_dir"/*/SKILL.md(N); do
+        echo "$skill"
+      done
+    done < <(jq --raw-output '.pi.skills // ["./skills"] | .[]' < "$extension"/package.json)
   done <<< "$extension_paths"
 }
 
