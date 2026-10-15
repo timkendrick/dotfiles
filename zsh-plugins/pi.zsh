@@ -169,6 +169,22 @@ pi-list-skill-paths() {
   done <<< "$extension_paths"
 }
 
+pi-list-skills() {
+  local frontmatter
+  local skill_name
+  pi-list-skill-paths | while IFS= read -r skill_path; do
+    # Extract the name: frontmatter from the skill markdown file
+    frontmatter=$(awk '/^---$/ {i++; next} i==1 {print} i==2 {exit}' "$skill_path" 2>/dev/null) || continue
+    if [[ -z "$frontmatter" ]]; then
+      continue
+    fi
+    skill_name=$(echo "$frontmatter" | awk -F': ' '/^name:/ {print $2}' 2>/dev/null) || continue
+    if [[ -n "$skill_name" ]]; then
+      echo "$skill_name"
+    fi
+  done
+}
+
 pi-skill() {
   # If no arguments are provided, list all available skills
   if [[ $# -eq 0 ]]; then
