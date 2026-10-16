@@ -49,21 +49,22 @@ find_profile() {
 }
 
 # List all available plugins with their definition file paths.
-# Output: one line per plugin: "<name>  <path>"
+# Output: one line per plugin: "<name>  <path> [<path>]"
 list_plugins() {
     [[ -d "$_SANDBOX_PLUGINS_DIR" ]] || return 0
     local file name
-    for file in "$_SANDBOX_PLUGINS_DIR"/*.sb "$_SANDBOX_PLUGINS_DIR"/*.sh; do
+    for file in "$_SANDBOX_PLUGINS_DIR"/*.sb "$_SANDBOX_PLUGINS_DIR"/*.sh "$_SANDBOX_PLUGINS_DIR"/*.env; do
         [[ -e "$file" ]] || continue
         name=$(basename "$file")
-        name="${name%.sb}"
-        name="${name%.sh}"
-        printf '%-16s%s\n' "$name" "$file"
-    done | sort
+        echo "${name%.*}"
+    done | sort -u | while IFS= read -r name; do
+        printf '%-16s%s\n' "$name" "$(find_plugin "$name" | paste -sd ' ' -)"
+    done
 }
 
-# Find the definition file for a plugin by name.
-# Prints the file path, or nothing if not found.
+# Find the definition files for a plugin by name.
+# Prints the rules file (.sb or .sh) and the environment file (.env), one per line.
+# Prints nothing if the plugin does not exist.
 find_plugin() {
     local name="$1"
     [[ -d "$_SANDBOX_PLUGINS_DIR" ]] || return 0
@@ -72,6 +73,39 @@ find_plugin() {
     elif [[ -f "$_SANDBOX_PLUGINS_DIR/$name.sh" ]]; then
         echo "$_SANDBOX_PLUGINS_DIR/$name.sh"
     fi
+    if [[ -f "$_SANDBOX_PLUGINS_DIR/$name.env" ]]; then
+        echo "$_SANDBOX_PLUGINS_DIR/$name.env"
+    fi
+}
+
+# A plain environment variable name
+_sandbox_env_name_regex='^[A-Za-z_][A-Za-z0-9_]*$'
+# An environment variable name that may contain glob characters (*, ?, [...])
+_sandbox_env_pattern_regex='^[][A-Za-z0-9_*?!^-]+$'
+
+# Exit with an error if $1 is not a valid environment variable name or glob pattern.
+# $2 = the source of the pattern, for the error message
+validate_env_pattern() {
+    local pattern="$1"
+    local origin="$2"
+    if ! [[ "$pattern" =~ $_sandbox_env_pattern_regex ]]; then
+        echo "Error: Invalid environment variable pattern '$pattern' in $origin." >&2
+        exit 1
+    fi
+}
+
+# Read the environment variable patterns from a plugin .env file into _sandbox_plugin_env_patterns.
+# Blank lines and lines starting with # are ignored. Each other line holds one pattern.
+# $1 = path to the file
+read_env_file() {
+    local file="$1"
+    local line
+    _sandbox_plugin_env_patterns=()
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        validate_env_pattern "$line" "$file"
+        _sandbox_plugin_env_patterns+=("$line")
+    done < "$file"
 }
 
 # Parse an rc/profile file and print one token per line to stdout.
@@ -106,6 +140,8 @@ Options:
   --path-readonly <path>      Allow read-only access to an exact path (no children)
   --pattern <regex>           Allow read+write access to paths matching a regex pattern
   --pattern-readonly <regex>  Allow read-only access to paths matching a regex pattern
+  --env <name>                Pass a host environment variable into the sandbox (glob patterns allowed)
+  --env <name>=<value>        Set an environment variable inside the sandbox
   --plugin <name>, --plugin=<name>  Enable a named plugin (see below for available plugins)
   --profile <name>, --profile=<name>  Apply a named profile (see below for available profiles)
 
@@ -129,6 +165,16 @@ Examples:
   $(basename "$0") -- ls -la
 
 The default sandbox has no permissions; all access must be explicitly granted.
+
+The sandboxed command receives only whitelisted environment variables, plus
+SANDBOX=1. Plugins and --env options add variables to the whitelist:
+  - A plugin may include a <name>.env file next to its rules file, or only a
+    <name>.env file
+  - Each line of a .env file holds one variable name or glob pattern
+    (e.g. AWS_PROFILE or AWS_*)
+  - Blank lines and lines starting with # are ignored
+  - Variables that are not set on the host are skipped
+  - Bash always sets PWD and SHLVL for the sandboxed command
 
 If a .sandboxrc file exists in the current working directory, it is read as
 additional sandbox arguments (appended after any CLI arguments). Blank lines
@@ -391,7 +437,7 @@ add_section() {
 # Process an argument list and append sandbox rules to _sandbox_profile_sections.
 # Called recursively for --profile expansion (depth-first).
 process_args() {
-    local plugin_name plugin_file plugin_rules profile_name profile_file token
+    local plugin_name plugin_files plugin_file plugin_rules plugin_section env_name profile_name profile_file token
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --dir)
@@ -455,18 +501,51 @@ process_args() {
                     plugin_name="$2"
                     shift 2
                 fi
-                plugin_file=$(find_plugin "$plugin_name")
-                if [[ -z "$plugin_file" ]]; then
+                plugin_files=()
+                while IFS= read -r plugin_file; do plugin_files+=("$plugin_file"); done < <(find_plugin "$plugin_name")
+                if [[ ${#plugin_files[@]} -eq 0 ]]; then
                     echo "Error: Unknown plugin '$plugin_name'." >&2
                     usage >&2
                     exit 1
                 fi
-                if [[ "$plugin_file" == *.sh ]]; then
-                    plugin_rules=$(bash "$plugin_file")
-                else
-                    plugin_rules=$(cat "$plugin_file")
+                plugin_rules=""
+                _sandbox_plugin_env_patterns=()
+                for plugin_file in "${plugin_files[@]}"; do
+                    case "$plugin_file" in
+                        *.sh) plugin_rules=$(bash "$plugin_file") ;;
+                        *.sb) plugin_rules=$(cat "$plugin_file") ;;
+                        *.env) read_env_file "$plugin_file" ;;
+                    esac
+                done
+                plugin_section=""
+                if [[ ${#_sandbox_plugin_env_patterns[@]} -gt 0 ]]; then
+                    _sandbox_env_patterns+=("${_sandbox_plugin_env_patterns[@]}")
+                    plugin_section=";; env: ${_sandbox_plugin_env_patterns[*]}"
                 fi
-                add_section "--plugin $plugin_name" "$plugin_rules"
+                if [[ -n "$plugin_rules" ]]; then
+                    plugin_section+="${plugin_section:+$'\n'}${plugin_rules}"
+                fi
+                add_section "--plugin $plugin_name" "$plugin_section"
+                ;;
+            --env)
+                if [[ -z "${2-}" ]]; then
+                    echo "Error: --env requires a variable name." >&2
+                    exit 1
+                fi
+                if [[ "$2" == *=* ]]; then
+                    env_name="${2%%=*}"
+                    if ! [[ "$env_name" =~ $_sandbox_env_name_regex ]]; then
+                        echo "Error: --env <name>=<value> requires a plain variable name, not '$env_name'." >&2
+                        exit 1
+                    fi
+                    _sandbox_env_assignments+=("$2")
+                else
+                    env_name="$2"
+                    validate_env_pattern "$env_name" "--env $env_name"
+                    _sandbox_env_patterns+=("$env_name")
+                fi
+                add_section "--env $env_name"
+                shift 2
                 ;;
             --profile|--profile=*)
                 if [[ "$1" == --profile=* ]]; then
@@ -503,6 +582,10 @@ process_args() {
     done
 }
 
+# Environment variable whitelist, accumulated by process_args
+_sandbox_env_patterns=()
+_sandbox_env_assignments=()
+
 add_section "Deny default rules" "(deny default)"
 process_args "${_sandbox_cli_args[@]+${_sandbox_cli_args[@]}}" "${_sandbox_rc_args[@]+${_sandbox_rc_args[@]}}"
 
@@ -537,5 +620,41 @@ if [[ "$_SANDBOX_HAS_COMMAND" == false ]]; then
     exit 0
 fi
 
+# Remove all exported variables and functions that the whitelist does not match.
+# Then export the explicit --env assignments.
+# This keeps variable values out of the sandbox-exec argument list.
+apply_env_whitelist() {
+    local name pattern allowed assignment function_declaration
+    while IFS= read -r name; do
+        allowed=false
+        for pattern in "${_sandbox_env_patterns[@]+"${_sandbox_env_patterns[@]}"}"; do
+            # shellcheck disable=SC2053
+            if [[ "$name" == $pattern ]]; then
+                allowed=true
+                break
+            fi
+        done
+        [[ "$allowed" == true ]] && continue
+        if ! [[ "$name" =~ $_sandbox_env_name_regex ]]; then
+            echo "Error: Cannot remove environment variable '$name' because its name is not valid in bash." >&2
+            exit 1
+        fi
+        # shellcheck disable=SC2163
+        export -n "$name"
+    done < <(compgen -e)
+    while IFS= read -r function_declaration; do
+        export -n -f "${function_declaration##* }"
+    done < <(declare -Fx)
+    for assignment in "${_sandbox_env_assignments[@]+"${_sandbox_env_assignments[@]}"}"; do
+        # shellcheck disable=SC2163
+        export "$assignment"
+    done
+    export SANDBOX=1
+}
+
+_sandbox_home="$(realpath "$HOME")"
+_sandbox_tmpdir="$(realpath "$TMPDIR")"
+apply_env_whitelist
+
 # Execute the command in the sandbox environment
-exec env SANDBOX=1 sandbox-exec -p "$_sandbox_profile_source" -D HOME="$(realpath "$HOME")" -D TMPDIR="$(realpath "$TMPDIR")" "${_SANDBOX_COMMAND_ARGS[@]}"
+exec sandbox-exec -p "$_sandbox_profile_source" -D HOME="$_sandbox_home" -D TMPDIR="$_sandbox_tmpdir" "${_SANDBOX_COMMAND_ARGS[@]}"
