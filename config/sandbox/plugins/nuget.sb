@@ -1,0 +1,3 @@
+;; Allow read+write access to ~/.nuget and the NuGet HTTP cache
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.nuget")))
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.local/share/NuGet/http-cache")))

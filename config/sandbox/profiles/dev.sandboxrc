@@ -35,6 +35,7 @@
 --plugin mise
 --plugin node
 --plugin npm
+--plugin nuget
 --plugin nx
 --plugin ollama
 --plugin perplexity
