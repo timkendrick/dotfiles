@@ -34,7 +34,7 @@ list_profiles() {
         [[ -e "$file" ]] || continue
         name=$(basename "$file")
         name="${name%.sandboxrc}"
-        printf '%-16s%s\n' "$name" "$file"
+        printf '%-15s %s\n' "$name" "$file"
     done | sort
 }
 
@@ -58,7 +58,7 @@ list_plugins() {
         name=$(basename "$file")
         echo "${name%.*}"
     done | sort -u | while IFS= read -r name; do
-        printf '%-16s%s\n' "$name" "$(find_plugin "$name" | paste -sd ' ' -)"
+        printf '%-15s %s\n' "$name" "$(find_plugin "$name" | paste -sd ' ' -)"
     done
 }
 
@@ -131,6 +131,8 @@ Run commands in a restricted sandbox environment
 Usage:
   $(basename "$0") [options]  Print the generated sandbox-exec profile to stdout
   $(basename "$0") [options] -- <command> [arguments...]  Run command inside the sandbox
+  $(basename "$0") profile list  List available profile names
+  $(basename "$0") plugin list   List available plugin names
 
 Options:
   -h, --help                  Show this help message and exit
@@ -382,6 +384,17 @@ resolve_dir() {
 
 # Collect CLI option tokens (everything before --) and _SANDBOX_COMMAND_ARGS (everything after).
 # Also handle --help early since it exits immediately.
+case "${1:-} ${2:-}" in
+    "profile list")
+        list_profiles | awk '{print $1}'
+        exit 0
+        ;;
+    "plugin list")
+        list_plugins | awk '{print $1}'
+        exit 0
+        ;;
+esac
+
 _SANDBOX_HAS_COMMAND=false
 _SANDBOX_COMMAND_ARGS=()
 _sandbox_cli_args=()
