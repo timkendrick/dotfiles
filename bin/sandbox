@@ -80,10 +80,10 @@ find_plugin() {
 
 # A plain environment variable name
 _sandbox_env_name_regex='^[A-Za-z_][A-Za-z0-9_]*$'
-# An environment variable name that may contain glob characters (*, ?, [...])
-_sandbox_env_pattern_regex='^[][A-Za-z0-9_*?!^-]+$'
+# An environment variable name with an optional trailing * (prefix match), or a lone * (matches every name)
+_sandbox_env_pattern_regex='^([A-Za-z_][A-Za-z0-9_]*\*?|\*)$'
 
-# Exit with an error if $1 is not a valid environment variable name or glob pattern.
+# Exit with an error if $1 is not a valid environment variable name or name prefix pattern.
 # $2 = the source of the pattern, for the error message
 validate_env_pattern() {
     local pattern="$1"
@@ -140,7 +140,7 @@ Options:
   --path-readonly <path>      Allow read-only access to an exact path (no children)
   --pattern <regex>           Allow read+write access to paths matching a regex pattern
   --pattern-readonly <regex>  Allow read-only access to paths matching a regex pattern
-  --env <name>                Pass a host environment variable into the sandbox (glob patterns allowed)
+  --env <name>                Pass a host environment variable into the sandbox (a trailing * matches a name prefix)
   --env <name>=<value>        Set an environment variable inside the sandbox
   --plugin <name>, --plugin=<name>  Enable a named plugin (see below for available plugins)
   --profile <name>, --profile=<name>  Apply a named profile (see below for available profiles)
@@ -170,8 +170,8 @@ The sandboxed command receives only whitelisted environment variables, plus
 SANDBOX=1. Plugins and --env options add variables to the whitelist:
   - A plugin may include a <name>.env file next to its rules file, or only a
     <name>.env file
-  - Each line of a .env file holds one variable name or glob pattern
-    (e.g. AWS_PROFILE or AWS_*)
+  - Each line of a .env file holds one variable name, optionally ending in *
+    to match a name prefix (e.g. AWS_PROFILE or AWS_*)
   - Blank lines and lines starting with # are ignored
   - Variables that are not set on the host are skipped
   - Bash always sets PWD and SHLVL for the sandboxed command
@@ -628,11 +628,12 @@ apply_env_whitelist() {
     while IFS= read -r name; do
         allowed=false
         for pattern in "${_sandbox_env_patterns[@]+"${_sandbox_env_patterns[@]}"}"; do
-            # shellcheck disable=SC2053
-            if [[ "$name" == $pattern ]]; then
-                allowed=true
-                break
+            if [[ "$pattern" == *\* ]]; then
+                [[ "$name" == "${pattern%\*}"* ]] && allowed=true
+            else
+                [[ "$name" == "$pattern" ]] && allowed=true
             fi
+            [[ "$allowed" == true ]] && break
         done
         [[ "$allowed" == true ]] && continue
         if ! [[ "$name" =~ $_sandbox_env_name_regex ]]; then
