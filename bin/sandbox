@@ -21,16 +21,16 @@ EOF
 }
 
 # Configuration paths
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/sandbox"
-PLUGINS_DIR="${CONFIG_DIR}/plugins"
-PROFILES_DIR="${CONFIG_DIR}/profiles"
+_SANDBOX_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/sandbox"
+_SANDBOX_PLUGINS_DIR="${_SANDBOX_CONFIG_DIR}/plugins"
+_SANDBOX_PROFILES_DIR="${_SANDBOX_CONFIG_DIR}/profiles"
 
 # List all available profiles with their definition file paths.
 # Output: one line per profile: "<name>  <path>"
 list_profiles() {
-    [[ -d "$PROFILES_DIR" ]] || return 0
+    [[ -d "$_SANDBOX_PROFILES_DIR" ]] || return 0
     local file name
-    for file in "$PROFILES_DIR"/*.sandboxrc; do
+    for file in "$_SANDBOX_PROFILES_DIR"/*.sandboxrc; do
         [[ -e "$file" ]] || continue
         name=$(basename "$file")
         name="${name%.sandboxrc}"
@@ -42,18 +42,18 @@ list_profiles() {
 # Prints the file path, or nothing if not found.
 find_profile() {
     local name="$1"
-    [[ -d "$PROFILES_DIR" ]] || return 0
-    if [[ -f "$PROFILES_DIR/$name.sandboxrc" ]]; then
-        echo "$PROFILES_DIR/$name.sandboxrc"
+    [[ -d "$_SANDBOX_PROFILES_DIR" ]] || return 0
+    if [[ -f "$_SANDBOX_PROFILES_DIR/$name.sandboxrc" ]]; then
+        echo "$_SANDBOX_PROFILES_DIR/$name.sandboxrc"
     fi
 }
 
 # List all available plugins with their definition file paths.
 # Output: one line per plugin: "<name>  <path>"
 list_plugins() {
-    [[ -d "$PLUGINS_DIR" ]] || return 0
+    [[ -d "$_SANDBOX_PLUGINS_DIR" ]] || return 0
     local file name
-    for file in "$PLUGINS_DIR"/*.sb "$PLUGINS_DIR"/*.sh; do
+    for file in "$_SANDBOX_PLUGINS_DIR"/*.sb "$_SANDBOX_PLUGINS_DIR"/*.sh; do
         [[ -e "$file" ]] || continue
         name=$(basename "$file")
         name="${name%.sb}"
@@ -66,11 +66,11 @@ list_plugins() {
 # Prints the file path, or nothing if not found.
 find_plugin() {
     local name="$1"
-    [[ -d "$PLUGINS_DIR" ]] || return 0
-    if [[ -f "$PLUGINS_DIR/$name.sb" ]]; then
-        echo "$PLUGINS_DIR/$name.sb"
-    elif [[ -f "$PLUGINS_DIR/$name.sh" ]]; then
-        echo "$PLUGINS_DIR/$name.sh"
+    [[ -d "$_SANDBOX_PLUGINS_DIR" ]] || return 0
+    if [[ -f "$_SANDBOX_PLUGINS_DIR/$name.sb" ]]; then
+        echo "$_SANDBOX_PLUGINS_DIR/$name.sb"
+    elif [[ -f "$_SANDBOX_PLUGINS_DIR/$name.sh" ]]; then
+        echo "$_SANDBOX_PLUGINS_DIR/$name.sh"
     fi
 }
 
@@ -79,6 +79,7 @@ find_plugin() {
 # ~ is expanded to $HOME. Each line is word-split into tokens.
 # $1 = path to the file
 parse_rc_file() {
+    local line tokens
     local file="$1"
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ -z "$line" || "$line" == \#* ]] && continue
@@ -272,6 +273,7 @@ deny_read_rule()        { printf '(deny file-read* %s)'             "$1"; }
 # $1 = path to the .sandboxignore file
 # $2 = base directory (absolute, no trailing slash)
 emit_sandboxignore_rules() {
+    local line rule
     local file="$1"
     local base="$2"
 
@@ -332,11 +334,11 @@ resolve_dir() {
     fi
 }
 
-# Collect CLI option tokens (everything before --) and COMMAND_ARGS (everything after).
+# Collect CLI option tokens (everything before --) and _SANDBOX_COMMAND_ARGS (everything after).
 # Also handle --help early since it exits immediately.
-COMMAND_MODE=false
-COMMAND_ARGS=()
-cli_args=()
+_SANDBOX_HAS_COMMAND=false
+_SANDBOX_COMMAND_ARGS=()
+_sandbox_cli_args=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -346,36 +348,36 @@ while [[ $# -gt 0 ]]; do
             ;;
         --)
             shift
-            COMMAND_MODE=true
-            COMMAND_ARGS=("$@")
+            _SANDBOX_HAS_COMMAND=true
+            _SANDBOX_COMMAND_ARGS=("$@")
             break
             ;;
         *)
-            cli_args+=("$1")
+            _sandbox_cli_args+=("$1")
             shift
             ;;
     esac
 done
 
 # Collect .sandboxrc tokens, if the file exists.
-rc_args=()
-SANDBOXRC_FILE="$(pwd)/.sandboxrc"
-if [[ -f "$SANDBOXRC_FILE" ]]; then
-    while IFS= read -r token; do rc_args+=("$token"); done < <(parse_rc_file "$SANDBOXRC_FILE")
+_sandbox_rc_args=()
+_SANDBOX_SANDBOXRC_FILE="$(pwd)/.sandboxrc"
+if [[ -f "$_SANDBOX_SANDBOXRC_FILE" ]]; then
+    while IFS= read -r _sandbox_token; do _sandbox_rc_args+=("$_sandbox_token"); done < <(parse_rc_file "$_SANDBOX_SANDBOXRC_FILE")
 fi
 
 # Parse all option tokens - CLI args first, then rc args - and accumulate
-# sandbox profile rule blocks into profile_sections.
-profile_sections=()
-_section_depth=0
+# sandbox profile rule blocks into _sandbox_profile_sections.
+_sandbox_profile_sections=()
+_sandbox_section_depth=0
 
-# Append a commented section (and optional rule content) to profile_sections,
-# indented according to the current _section_depth.
+# Append a commented section (and optional rule content) to _sandbox_profile_sections,
+# indented according to the current _sandbox_section_depth.
 add_section() {
     local comment="$1"
     local rule="${2-}"
     local indent
-    indent=$(printf '%*s' "$_section_depth" '' | tr ' ' $'\t')
+    indent=$(printf '%*s' "$_sandbox_section_depth" '' | tr ' ' $'\t')
 
     local entry="${indent};; ${comment}"
     if [[ -n "$rule" ]]; then
@@ -383,12 +385,13 @@ add_section() {
         indented_rule=$(printf '%s\n' "$rule" | sed "s/^/${indent}/")
         entry+=$'\n'"${indented_rule}"
     fi
-    profile_sections+=("$entry")
+    _sandbox_profile_sections+=("$entry")
 }
 
-# Process an argument list and append sandbox rules to profile_sections.
+# Process an argument list and append sandbox rules to _sandbox_profile_sections.
 # Called recursively for --profile expansion (depth-first).
 process_args() {
+    local plugin_name plugin_file plugin_rules profile_name profile_file token
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --dir)
@@ -485,11 +488,11 @@ process_args() {
                     exit 1
                 fi
                 add_section "--profile $profile_name"
-                (( _section_depth++ ))
+                (( _sandbox_section_depth++ ))
                 local profile_tokens=()
                 while IFS= read -r token; do profile_tokens+=("$token"); done < <(parse_rc_file "$profile_file")
                 process_args "${profile_tokens[@]+"${profile_tokens[@]}"}"
-                (( _section_depth-- ))
+                (( _sandbox_section_depth-- ))
                 ;;
             *)
                 echo "Error: Unknown argument '$1'." >&2
@@ -501,38 +504,38 @@ process_args() {
 }
 
 add_section "Deny default rules" "(deny default)"
-process_args "${cli_args[@]+${cli_args[@]}}" "${rc_args[@]+${rc_args[@]}}"
+process_args "${_sandbox_cli_args[@]+${_sandbox_cli_args[@]}}" "${_sandbox_rc_args[@]+${_sandbox_rc_args[@]}}"
 
 # Validate arguments
-if [[ "$COMMAND_MODE" == true && ${#COMMAND_ARGS[@]} -eq 0 ]]; then
+if [[ "$_SANDBOX_HAS_COMMAND" == true && ${#_SANDBOX_COMMAND_ARGS[@]} -eq 0 ]]; then
     echo "Error: No command provided after '--'." >&2
     usage >&2
     exit 1
 fi
 
 # Add rules from .sandboxignore, if present
-SANDBOXIGNORE_FILE="$(pwd)/.sandboxignore"
-if [[ -f "$SANDBOXIGNORE_FILE" ]]; then
-    while IFS= read -r rule; do
-        profile_sections+=("$rule")
-    done < <(emit_sandboxignore_rules "$SANDBOXIGNORE_FILE" "$(pwd)")
+_SANDBOX_SANDBOXIGNORE_FILE="$(pwd)/.sandboxignore"
+if [[ -f "$_SANDBOX_SANDBOXIGNORE_FILE" ]]; then
+    while IFS= read -r _sandbox_rule; do
+        _sandbox_profile_sections+=("$_sandbox_rule")
+    done < <(emit_sandboxignore_rules "$_SANDBOX_SANDBOXIGNORE_FILE" "$(pwd)")
 fi
 
 # Create the sandbox profile (template + dynamic rules)
-profile_source=$(
+_sandbox_profile_source=$(
     print_sandbox_template
     echo ""
-    for section in "${profile_sections[@]+"${profile_sections[@]}"}"; do
-        echo "$section"
+    for _sandbox_section in "${_sandbox_profile_sections[@]+"${_sandbox_profile_sections[@]}"}"; do
+        echo "$_sandbox_section"
         echo ""
     done
 )
 
 # If no command was specified, write the profile to stdout and exit
-if [[ "$COMMAND_MODE" == false ]]; then
-    echo "$profile_source"
+if [[ "$_SANDBOX_HAS_COMMAND" == false ]]; then
+    echo "$_sandbox_profile_source"
     exit 0
 fi
 
 # Execute the command in the sandbox environment
-exec env SANDBOX=1 sandbox-exec -p "$profile_source" -D HOME="$(realpath "$HOME")" -D TMPDIR="$(realpath "$TMPDIR")" "${COMMAND_ARGS[@]}"
+exec env SANDBOX=1 sandbox-exec -p "$_sandbox_profile_source" -D HOME="$(realpath "$HOME")" -D TMPDIR="$(realpath "$TMPDIR")" "${_SANDBOX_COMMAND_ARGS[@]}"
