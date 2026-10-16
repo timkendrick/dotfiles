@@ -1,6 +1,3 @@
-export TT_SELECT=fzf
-export TT_LOG=info
-
 alias tt-worktree-create='cd "$(tt checkout --worktree "$(tt create)" || echo ".")"'
 alias tt-worktree-checkout='cd "$(tt checkout --rebase --worktree "$(tt select)" || echo ".")"'
 alias tt-worktree-select='cd "$(tt worktree show --name "$(tt worktree list --quiet | fzf)" || echo ".")"'
