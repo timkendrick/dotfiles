@@ -2,3 +2,7 @@
 --plugin process
 --plugin system-services
 --plugin tmp
+--plugin login
+--plugin locale
+--plugin terminal
+--plugin xdg
