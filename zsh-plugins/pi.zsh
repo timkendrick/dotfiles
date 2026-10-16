@@ -242,13 +242,14 @@ pi() {
   local -a noninteractive_flags=(--help -h --version -v --list-models --print -p --mode)
 
   # Determine whether model or thinking selection should be applied depending on how the function is called
-  local bypass_model_selection=0 bypass_thinking_selection=0
+  local bypass_sandbox_selection=0 bypass_model_selection=0 bypass_thinking_selection=0
+  [[ "$SANDBOX" == 1 ]] && bypass_sandbox_selection=1
   if [[ ! -t 0 ]]; then
-    # Skip model/thinking selection for non-interactive stdin (e.g. piped input) 
-    bypass_model_selection=1 bypass_thinking_selection=1
+    # Skip all selection for non-interactive stdin (e.g. piped input)
+    bypass_sandbox_selection=1 bypass_model_selection=1 bypass_thinking_selection=1
   elif (( ${noninteractive_subcommands[(Ie)$1]} )); then
-    # Skip model/thinking selection for noninteractive subcommands
-    bypass_model_selection=1 bypass_thinking_selection=1
+    # Skip all selection for noninteractive subcommands
+    bypass_sandbox_selection=1 bypass_model_selection=1 bypass_thinking_selection=1
   else
     # Parse provided args to determine whether model or thinking selection should be skipped
     local arg
@@ -261,9 +262,22 @@ pi() {
         # Skip model/thinking selection when resuming an existing chat session
         --resume|-r|--session) bypass_model_selection=1 bypass_thinking_selection=1; break ;;
         # Skip model/thinking selection for noninteractive subcommands
-        *) (( ${noninteractive_flags[(Ie)$arg]} )) && { bypass_model_selection=1 bypass_thinking_selection=1; break } ;;
+        *) (( ${noninteractive_flags[(Ie)$arg]} )) && { bypass_sandbox_selection=1 bypass_model_selection=1 bypass_thinking_selection=1; break } ;;
       esac
     done
+  fi
+
+  # Prompt the user for a sandbox profile
+  local -a sandbox_prefix=()
+  if (( ! bypass_sandbox_selection )); then
+    local -a profiles=("${(@f)$(sandbox profile list 2>/dev/null)}")
+    profiles=(${profiles:#})
+    if (( ${#profiles} )); then
+      local profile
+      profile=$(printf '%s\n' "(no sandbox)" "${profiles[@]}" | fzf --header "Sandbox profile") || return
+      [[ -z "$profile" ]] && return 130
+      [[ "$profile" != "(no sandbox)" ]] && sandbox_prefix=(sandbox --profile "$profile" --)
+    fi
   fi
 
   # Prompt the user for model and thinking level selections
@@ -282,7 +296,7 @@ pi() {
   fi
 
   # Execute the `pi` command with the selected model and thinking level, relaying any other arguments
-  command pi "${selected_args[@]}" "$@"
+  "${sandbox_prefix[@]}" command pi "${selected_args[@]}" "$@"
 }
 
 # Lists the PIDs of any active `pi` processes whose working directory is the given
