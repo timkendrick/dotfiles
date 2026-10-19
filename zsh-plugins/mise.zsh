@@ -1,5 +1,22 @@
+mise-list-tool-managed-packages() {
+  local prefix="$1"
+  mise ls --json | jq -r 'keys[]' | grep '^'"$prefix"':'
+}
+
+mise-list-cargo-packages() {
+  mise-list-tool-managed-packages "cargo"
+}
+
+mise-list-github-packages() {
+  mise-list-tool-managed-packages "github"
+}
+
+mise-list-go-packages() {
+  mise-list-tool-managed-packages "go"
+}
+
 mise-list-npm-packages() {
-  mise ls --json | jq -r 'keys[]' | grep '^npm:'
+  mise-list-tool-managed-packages "npm"
 }
 
 mise-link-global-npm-packages() {
