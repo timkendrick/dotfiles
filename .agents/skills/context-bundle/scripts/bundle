@@ -1,0 +1,739 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROG=$(basename "$0")
+readonly PROG
+
+usage() {
+  cat <<EOF
+Usage:
+  $PROG unpack [--project <dir>] [--vcs git|jj|none] <bundle-file>
+  $PROG validate [--project <dir>] [--vcs git|jj|none] <bundle-file>
+  $PROG --help
+
+Commands:
+  unpack     Print every referenced file slice as Markdown, in bundle order.
+             Bad entries print an inline error. Exit status is 1 if any entry failed.
+  validate   Check bundle syntax and confirm that every referenced slice exists.
+             Print one line per issue, then a summary on stderr.
+             Exit status is 1 if any error was found.
+
+Options:
+  --project <dir>     Resolve bundle paths relative to <dir>.
+                      Default: the repository root, or the current directory if
+                      there is no repository.
+  --vcs git|jj|none   Select the VCS backend. Default: search upward from the
+                      project for a .jj or .git directory. jj has priority.
+                      With "none", every pinned revision is an error.
+  -h, --help          Show this help.
+
+Use "-" as <bundle-file> to read the bundle from stdin.
+
+Bundle grammar (one item per line):
+  # @<rev>                         Bundle revision pin. Recognized only on line 1.
+  # <text>                         Group heading.
+  <path>[:N[-M]][:@<rev>] [# note] File reference with an optional note.
+  (blank line)                     Ignored.
+
+  :N        Read line N only.
+  :N-M      Read lines N to M.
+  :@<rev>   Read the file at <rev>. This overrides the bundle pin.
+  :@@       Read the file from the working copy.
+  # note    A note must have whitespace before the "#".
+
+  An entry without a revision uses the bundle pin.
+  A bundle without a pin reads every file from the working copy.
+  The path ends at the first ":" followed by a digit or "@".
+  Paths and revisions cannot contain whitespace.
+
+Example:
+  # @a1b2c3d
+  # Code to modify
+  src/auth/token.ts:40-85     # refresh flow
+  src/auth/session.ts:@@      # uncommitted edits
+  # Tests
+  test/auth/token.test.ts
+EOF
+}
+
+log() {
+  printf '%s: %s\n' "$PROG" "$*" >&2
+}
+
+fail_usage() {
+  log "$1"
+  usage >&2
+  exit 1
+}
+
+command=""
+vcs_option=""
+project_option=""
+bundle_file=""
+
+parse_args() {
+  if [[ $# -eq 0 ]]; then
+    fail_usage "missing command"
+  fi
+  case $1 in
+    -h | --help | help)
+      usage
+      exit 0
+      ;;
+    unpack | validate)
+      command=$1
+      ;;
+    *)
+      fail_usage "unknown command: $1"
+      ;;
+  esac
+  shift
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      --vcs)
+        if [[ $# -lt 2 ]]; then
+          fail_usage "--vcs requires a value"
+        fi
+        case $2 in
+          git | jj | none) vcs_option=$2 ;;
+          *) fail_usage "unsupported VCS: $2" ;;
+        esac
+        shift 2
+        ;;
+      --project)
+        if [[ $# -lt 2 ]]; then
+          fail_usage "--project requires a value"
+        fi
+        if [[ ! -d $2 ]]; then
+          fail_usage "project directory not found: $2"
+        fi
+        project_option=$2
+        shift 2
+        ;;
+      -)
+        set_bundle_file "$1"
+        shift
+        ;;
+      -*)
+        fail_usage "unknown option: $1"
+        ;;
+      *)
+        set_bundle_file "$1"
+        shift
+        ;;
+    esac
+  done
+  if [[ -z $bundle_file ]]; then
+    fail_usage "missing bundle file"
+  fi
+}
+
+set_bundle_file() {
+  if [[ -n $bundle_file ]]; then
+    fail_usage "unexpected argument: $1"
+  fi
+  bundle_file=$1
+}
+
+bundle_name=""
+bundle_lines=()
+
+read_bundle() {
+  local line
+  if [[ $bundle_file == "-" ]]; then
+    bundle_name="stdin"
+  elif [[ -f $bundle_file ]]; then
+    bundle_name=$(printf '%s' "$bundle_file" | tr -s '/')
+  else
+    log "bundle file not found: $bundle_file"
+    exit 1
+  fi
+  while IFS= read -r line || [[ -n $line ]]; do
+    bundle_lines+=("$line")
+  done < <(if [[ $bundle_file == "-" ]]; then cat; else cat -- "$bundle_file"; fi)
+}
+
+backend=""
+project_root=""
+repo_root=""
+repo_prefix=""
+
+physical_path() {
+  (cd -- "$1" && pwd -P)
+}
+
+# Sets backend and repo_root. repo_root is empty for the "none" backend.
+find_repo() {
+  local start=$1 dir
+  case $vcs_option in
+    git)
+      backend=git
+      repo_root=$(git -C "$start" rev-parse --show-toplevel) || exit 1
+      ;;
+    jj)
+      backend=jj
+      repo_root=$(cd -- "$start" && jj root) || exit 1
+      ;;
+    none)
+      backend=none
+      ;;
+    *)
+      dir=$start
+      while :; do
+        if [[ -d $dir/.jj ]]; then
+          backend=jj
+          repo_root=$dir
+          return
+        fi
+        if [[ -e $dir/.git ]]; then
+          backend=git
+          repo_root=$dir
+          return
+        fi
+        if [[ $dir == "/" ]]; then
+          break
+        fi
+        dir=$(dirname "$dir")
+      done
+      backend=none
+      ;;
+  esac
+}
+
+# Sets project_root, and repo_prefix as the project path relative to repo_root.
+find_project() {
+  local start
+  start=$(physical_path "${project_option:-.}")
+  find_repo "$start"
+  if [[ $backend == none ]]; then
+    project_root=$start
+    return
+  fi
+  repo_root=$(physical_path "$repo_root")
+  project_root=${project_option:+$start}
+  project_root=${project_root:-$repo_root}
+  if [[ $project_root == "$repo_root" ]]; then
+    repo_prefix=""
+  elif [[ $project_root == "$repo_root"/* ]]; then
+    repo_prefix=${project_root#"$repo_root"/}/
+  else
+    log "project directory is outside the repository: $project_root"
+    exit 1
+  fi
+}
+
+run_git() {
+  git -C "$repo_root" "$@"
+}
+
+run_jj() {
+  (cd -- "$repo_root" && jj "$@")
+}
+
+trim_trailing_space() {
+  local text=$1
+  printf '%s' "${text%"${text##*[![:space:]]}"}"
+}
+
+PIN_RE='^#[[:space:]]*@([^[:space:]]+)$'
+HEADING_RE='^[[:space:]]*#+[[:space:]]*(.*)$'
+ENTRY_RE='^[[:space:]]*([^[:space:]#][^[:space:]]*)([[:space:]]+#[[:space:]]*(.*))?$'
+SPEC_RE='^(:([0-9]+)(-([0-9]+))?)?(:@([^[:space:]]+))?$'
+
+line_kind=""
+line_text=""
+line_ref=""
+line_path=""
+line_start=0
+line_end=0
+line_rev=""
+line_note=""
+line_error=""
+
+# Classifies one bundle line. Sets the line_* globals.
+# line_end is 0 for a whole-file reference.
+parse_line() {
+  local number=$1 raw=$2 text spec
+  line_text=""
+  line_ref=""
+  line_path=""
+  line_start=0
+  line_end=0
+  line_rev=""
+  line_note=""
+  line_error=""
+  text=$(trim_trailing_space "${raw%$'\r'}")
+  if [[ -z ${text//[[:space:]]/} ]]; then
+    line_kind=blank
+    return
+  fi
+  if [[ $number -eq 1 && $text =~ $PIN_RE ]]; then
+    line_kind=pin
+    line_rev=${BASH_REMATCH[1]}
+    return
+  fi
+  if [[ $text =~ $HEADING_RE ]]; then
+    line_kind=heading
+    line_text=${BASH_REMATCH[1]}
+    return
+  fi
+  line_kind=invalid
+  line_ref=$text
+  if [[ ! $text =~ $ENTRY_RE ]]; then
+    line_error="unexpected text after the file reference"
+    return
+  fi
+  line_ref=${BASH_REMATCH[1]}
+  line_note=${BASH_REMATCH[3]}
+  line_path=${line_ref%%:[0-9@]*}
+  spec=${line_ref#"$line_path"}
+  if [[ -z $line_path ]]; then
+    line_error="missing path"
+    return
+  fi
+  if [[ $line_path == /* || /$line_path/ == */../* ]]; then
+    line_error="path must be relative to the project root"
+    return
+  fi
+  if [[ ! $spec =~ $SPEC_RE ]]; then
+    line_error="invalid line range or revision"
+    return
+  fi
+  line_rev=${BASH_REMATCH[6]}
+  if [[ -n ${BASH_REMATCH[2]} ]]; then
+    line_start=$((10#${BASH_REMATCH[2]}))
+    line_end=$line_start
+    if [[ -n ${BASH_REMATCH[4]} ]]; then
+      line_end=$((10#${BASH_REMATCH[4]}))
+    fi
+    if [[ $line_start -lt 1 ]]; then
+      line_error="line numbers start at 1"
+      return
+    fi
+    if [[ $line_end -lt $line_start ]]; then
+      line_error="range end is before range start"
+      return
+    fi
+  fi
+  line_kind=entry
+}
+
+bundle_pin="@"
+
+find_bundle_pin() {
+  if [[ ${#bundle_lines[@]} -gt 0 ]]; then
+    parse_line 1 "${bundle_lines[0]}"
+    if [[ $line_kind == pin ]]; then
+      bundle_pin=$line_rev
+    fi
+  fi
+}
+
+rev_label() {
+  if [[ $1 == "@" ]]; then
+    printf 'working copy'
+  else
+    printf '%s' "$1"
+  fi
+}
+
+checked_revs=()
+checked_rev_results=()
+rev_error=""
+
+# Confirms that a revision resolves to exactly one commit. Results are cached.
+check_rev() {
+  local rev=$1 i result count
+  for ((i = 0; i < ${#checked_revs[@]}; i++)); do
+    if [[ ${checked_revs[i]} == "$rev" ]]; then
+      rev_error=${checked_rev_results[i]}
+      [[ -z $rev_error ]]
+      return
+    fi
+  done
+  result=""
+  case $backend in
+    git)
+      if ! run_git rev-parse --verify --quiet "$rev^{commit}" >/dev/null; then
+        result="unknown revision: $rev"
+      fi
+      ;;
+    jj)
+      if ! count=$(run_jj log -r "$rev" --no-graph -T 'commit_id ++ "\n"' 2>/dev/null | awk 'END { print NR }'); then
+        result="unknown revision: $rev"
+      elif [[ $count -eq 0 ]]; then
+        result="unknown revision: $rev"
+      elif [[ $count -gt 1 ]]; then
+        result="revision resolves to $count commits: $rev"
+      fi
+      ;;
+    *)
+      result="revision $rev requires a VCS"
+      ;;
+  esac
+  checked_revs+=("$rev")
+  checked_rev_results+=("$result")
+  rev_error=$result
+  [[ -z $rev_error ]]
+}
+
+diffed_revs=()
+diffed_rev_paths=()
+changed_paths_result=""
+
+# Lists files that differ between a revision and the working copy.
+# The result is "!" if the list is not available. Results are cached.
+find_changed_paths() {
+  local rev=$1 i paths
+  for ((i = 0; i < ${#diffed_revs[@]}; i++)); do
+    if [[ ${diffed_revs[i]} == "$rev" ]]; then
+      changed_paths_result=${diffed_rev_paths[i]}
+      return
+    fi
+  done
+  case $backend in
+    git)
+      paths=$(run_git diff --no-renames --name-only -z "$rev" -- 2>/dev/null | tr '\0' '\n') || paths="!"
+      ;;
+    jj)
+      paths=$(run_jj diff --from "$rev" --to @ --name-only 2>/dev/null) || paths="!"
+      ;;
+    *)
+      paths="!"
+      ;;
+  esac
+  diffed_revs+=("$rev")
+  diffed_rev_paths+=("$paths")
+  changed_paths_result=$paths
+}
+
+working_copy_matches() {
+  local rev=$1 path=$2
+  if [[ ! -f $path ]]; then
+    return 1
+  fi
+  find_changed_paths "$rev"
+  if [[ $changed_paths_result == "!" ]]; then
+    return 1
+  fi
+  ! grep -Fxq -- "$repo_prefix$path" <<<"$changed_paths_result"
+}
+
+jj_fileset() {
+  local path=${1//\\/\\\\}
+  path=${path//\"/\\\"}
+  printf 'root-file:"%s"' "$path"
+}
+
+read_error=""
+
+# Writes the content of a file at a revision to an output file.
+read_file() {
+  local rev=$1 path=$2 out=$3 fileset listed
+  read_error=""
+  if [[ $rev == "@" ]]; then
+    if [[ ! -f $path ]]; then
+      read_error="file not found in the working copy"
+      return 1
+    fi
+    cat -- "$path" >"$out"
+    return
+  fi
+  if ! check_rev "$rev"; then
+    read_error=$rev_error
+    return 1
+  fi
+  if working_copy_matches "$rev" "$path"; then
+    cat -- "$path" >"$out"
+    return
+  fi
+  case $backend in
+    git)
+      if run_git cat-file blob "$rev:$repo_prefix$path" >"$out" 2>/dev/null; then
+        return
+      fi
+      ;;
+    jj)
+      fileset=$(jj_fileset "$repo_prefix$path")
+      listed=$(run_jj file list -r "$rev" -- "$fileset" 2>/dev/null) || listed=""
+      if [[ $listed == "$repo_prefix$path" ]] && run_jj file show -r "$rev" -- "$fileset" >"$out" 2>/dev/null; then
+        return
+      fi
+      ;;
+  esac
+  read_error="file not found at revision $rev"
+  return 1
+}
+
+count_lines() {
+  awk 'END { print NR }' "$1"
+}
+
+check_range() {
+  local total=$1
+  if [[ $line_end -gt $total ]]; then
+    read_error="range ends at line $line_end but the file has $total lines"
+    return 1
+  fi
+}
+
+code_language() {
+  local name=${1##*/} extension
+  case $name in
+    Dockerfile) printf 'dockerfile'; return ;;
+    Makefile | GNUmakefile) printf 'make'; return ;;
+  esac
+  name=${name#.}
+  if [[ $name != *.* ]]; then
+    return
+  fi
+  extension=$(printf '%s' "${name##*.}" | tr '[:upper:]' '[:lower:]')
+  case $extension in
+    ts | mts | cts) printf 'ts' ;;
+    js | mjs | cjs) printf 'js' ;;
+    py) printf 'python' ;;
+    rb) printf 'ruby' ;;
+    rs) printf 'rust' ;;
+    sh | bash) printf 'bash' ;;
+    md | mdc | mdx) printf 'markdown' ;;
+    yml) printf 'yaml' ;;
+    h) printf 'c' ;;
+    hpp | hh | cc | cxx) printf 'cpp' ;;
+    kt | kts) printf 'kotlin' ;;
+    *) printf '%s' "$extension" ;;
+  esac
+}
+
+render_slice() {
+  local file=$1 start=$2 end=$3 language=$4
+  printf '\n```%s\n' "$language"
+  awk -v first="$start" -v last="$end" -v width="${#end}" \
+    'NR >= first && NR <= last { printf "%" width "d  %s\n", NR, $0 }' "$file"
+  printf '```\n'
+}
+
+scratch_file=""
+
+make_scratch_file() {
+  scratch_file=$(mktemp "${TMPDIR:-/tmp}/context-bundle.XXXXXX")
+  trap 'rm -f -- "$scratch_file"' EXIT
+}
+
+entry_label() {
+  local label=$line_path
+  if [[ $line_start -gt 0 ]]; then
+    label+=":$line_start"
+    if [[ $line_end -ne $line_start ]]; then
+      label+="-$line_end"
+    fi
+  fi
+  printf '%s' "$label"
+}
+
+unpack() {
+  local i number rev total start end failures=0
+  printf '# Context bundle: %s\n\nRevision: %s\n' "$bundle_name" "$(rev_label "$bundle_pin")"
+  for ((i = 0; i < ${#bundle_lines[@]}; i++)); do
+    number=$((i + 1))
+    parse_line "$number" "${bundle_lines[i]}"
+    case $line_kind in
+      blank | pin)
+        continue
+        ;;
+      heading)
+        if [[ -n $line_text ]]; then
+          printf '\n## %s\n' "$line_text"
+        fi
+        continue
+        ;;
+      invalid)
+        printf '\n### %s\n\n> Error (line %d): %s\n' "$line_ref" "$number" "$line_error"
+        failures=$((failures + 1))
+        continue
+        ;;
+    esac
+    rev=${line_rev:-$bundle_pin}
+    if [[ $rev == "$bundle_pin" ]]; then
+      printf '\n### %s\n' "$(entry_label)"
+    else
+      printf '\n### %s (%s)\n' "$(entry_label)" "$(rev_label "$rev")"
+    fi
+    if [[ -n $line_note ]]; then
+      printf '\n%s\n' "$line_note"
+    fi
+    if read_file "$rev" "$line_path" "$scratch_file"; then
+      total=$(count_lines "$scratch_file")
+      if check_range "$total"; then
+        start=1
+        end=$total
+        if [[ $line_start -gt 0 ]]; then
+          start=$line_start
+          end=$line_end
+        fi
+        render_slice "$scratch_file" "$start" "$end" "$(code_language "$line_path")"
+        continue
+      fi
+    fi
+    printf '\n> Error (line %d): %s\n' "$number" "$read_error"
+    failures=$((failures + 1))
+  done
+  if [[ $failures -gt 0 ]]; then
+    log "$failures entries failed to unpack"
+    return 1
+  fi
+}
+
+errors=0
+warnings=0
+
+report() {
+  local level=$1 number=$2 subject=$3 message=$4
+  printf '%s:%d: %s: %s: %s\n' "$bundle_name" "$number" "$level" "$subject" "$message"
+  if [[ $level == error ]]; then
+    errors=$((errors + 1))
+  else
+    warnings=$((warnings + 1))
+  fi
+}
+
+LONG_LINE_BYTES=1000
+
+# Prints the line count, the byte count, the number of long lines, and the
+# line number and byte length of the longest line of a slice.
+# A start of 0 selects the whole file.
+slice_size() {
+  local file=$1 start=$2 end=$3
+  LC_ALL=C awk -v first="$start" -v last="$end" -v limit="$LONG_LINE_BYTES" '
+    first == 0 || (NR >= first && NR <= last) {
+      lines++
+      bytes += length($0) + 1
+      if (length($0) > limit) long++
+      if (length($0) > longest) { longest = length($0); longest_line = NR }
+    }
+    END { print lines + 0, bytes + 0, long + 0, longest_line + 0, longest + 0 }' "$file"
+}
+
+format_size() {
+  local bytes=$1
+  if [[ $bytes -lt 1024 ]]; then
+    printf '%d B' "$bytes"
+  else
+    awk -v bytes="$bytes" 'BEGIN { printf "%.1f KB", bytes / 1024 }'
+  fi
+}
+
+plural() {
+  local count=$1 singular=$2 plural=${3:-${2}s}
+  if [[ $count -eq 1 ]]; then
+    printf '%d %s' "$count" "$singular"
+  else
+    printf '%d %s' "$count" "$plural"
+  fi
+}
+
+# Prints the number of distinct arguments.
+count_distinct() {
+  if [[ $# -eq 0 ]]; then
+    printf '0'
+    return
+  fi
+  printf '%s\n' "$@" | sort -u | awk 'END { print NR }'
+}
+
+validate() {
+  local i j number rev total slice_lines slice_bytes long_lines longest_line longest_bytes
+  local total_lines=0 total_bytes=0 file_count=0 rev_count=0
+  local -a entry_numbers=() entry_refs=() entry_paths=() entry_revs=() entry_starts=() entry_ends=()
+  for ((i = 0; i < ${#bundle_lines[@]}; i++)); do
+    number=$((i + 1))
+    parse_line "$number" "${bundle_lines[i]}"
+    case $line_kind in
+      blank | pin)
+        continue
+        ;;
+      heading)
+        if [[ ${bundle_lines[i]} =~ $PIN_RE ]]; then
+          report warning "$number" "${bundle_lines[i]}" "a revision pin is only recognized on line 1; this line is a heading"
+        fi
+        continue
+        ;;
+      invalid)
+        report error "$number" "$line_ref" "$line_error"
+        continue
+        ;;
+    esac
+    rev=${line_rev:-$bundle_pin}
+    if read_file "$rev" "$line_path" "$scratch_file"; then
+      total=$(count_lines "$scratch_file")
+      if check_range "$total"; then
+        read -r slice_lines slice_bytes long_lines longest_line longest_bytes \
+          < <(slice_size "$scratch_file" "$line_start" "$line_end")
+        total_lines=$((total_lines + slice_lines))
+        total_bytes=$((total_bytes + slice_bytes))
+        if [[ $long_lines -gt 0 ]]; then
+          report warning "$number" "$line_ref" \
+            "$(plural "$long_lines" line) longer than $LONG_LINE_BYTES bytes (longest: line $longest_line, $longest_bytes bytes); read tools may cut long lines"
+        fi
+      else
+        report error "$number" "$line_ref" "$read_error"
+      fi
+    else
+      report error "$number" "$line_ref" "$read_error"
+    fi
+    entry_numbers+=("$number")
+    entry_refs+=("$line_ref")
+    entry_paths+=("$line_path")
+    entry_revs+=("$rev")
+    entry_starts+=("$line_start")
+    entry_ends+=("$line_end")
+  done
+  for ((i = 0; i < ${#entry_numbers[@]}; i++)); do
+    for ((j = 0; j < i; j++)); do
+      if [[ ${entry_paths[i]} == "${entry_paths[j]}" && ${entry_revs[i]} == "${entry_revs[j]}" ]] &&
+        ranges_overlap "${entry_starts[i]}" "${entry_ends[i]}" "${entry_starts[j]}" "${entry_ends[j]}"; then
+        report warning "${entry_numbers[i]}" "${entry_refs[i]}" "overlaps line ${entry_numbers[j]} (${entry_refs[j]})"
+      fi
+    done
+  done
+  if [[ ${#entry_numbers[@]} -gt 0 ]]; then
+    file_count=$(count_distinct "${entry_paths[@]}")
+    rev_count=$(count_distinct "${entry_revs[@]}")
+  fi
+  printf '%s, %s, %s, %s, %s\n%s, %s\n' \
+    "$(plural "${#entry_numbers[@]}" entry entries)" \
+    "$(plural "$file_count" file)" \
+    "$(plural "$rev_count" revision)" \
+    "$(plural "$total_lines" line)" \
+    "$(format_size "$total_bytes")" \
+    "$(plural "$errors" error)" \
+    "$(plural "$warnings" warning)" >&2
+  [[ $errors -eq 0 ]]
+}
+
+# Ranges with a start of 0 cover the whole file.
+ranges_overlap() {
+  local start_a=$1 end_a=$2 start_b=$3 end_b=$4
+  if [[ $start_a -eq 0 || $start_b -eq 0 ]]; then
+    return 0
+  fi
+  [[ $start_a -le $end_b && $start_b -le $end_a ]]
+}
+
+main() {
+  parse_args "$@"
+  read_bundle
+  find_project
+  cd -- "$project_root"
+  find_bundle_pin
+  make_scratch_file
+  case $command in
+    unpack) unpack ;;
+    validate) validate ;;
+  esac
+}
+
+main "$@"
