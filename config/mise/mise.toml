@@ -17,13 +17,14 @@ k9s = "latest"
 kubectl = "latest"
 kustomize = "latest"
 lazygit = "latest"
+mr-boxington = { version = "latest", workflow = "release.yml@refs/heads/main" }
 neovim = "latest"
 node = "24"
 pipx = "latest"
 python = "3.12"
 ripgrep = "latest"
 ruff = "latest"
-rust = "latest"
+rust = { version = "latest", mr_boxington = true }
 sccache = "latest"
 shellcheck = "latest"
 terraform = "latest"
@@ -53,6 +54,7 @@ watchexec = "latest"
 "npm:typescript" = "latest"
 "npm:typescript-language-server" = "latest"
 "npm:yaml-language-server" = "latest"
+mr-boxington = { version = "latest", workflow = "release.yml@refs/heads/main" }
 
 [settings]
 experimental = true
