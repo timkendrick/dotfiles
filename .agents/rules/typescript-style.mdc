@@ -19,6 +19,12 @@ alwaysApply: true
   - Exception: local mutation is acceptable within performance-sensitive inner loops, unbounded recursion etc.
 - You SHOULD prefer named function declarations over function variable assignments
 - You SHOULD extract isolated functionality into helper functions
+- You MUST name functions according to their 'external' behavior, not their 'internal' implementation
+- You MUST start every function name with a verb (`parseUserEmail`, `formatUserName`, `transformUtcDateToLocalTimezone`, etc)
+  - Exceptions:
+    - Callbacks: prefix with `on`, e.g. `onClick` (corresponding handler: `handleClick`)
+    - Well-known 'primitive' functions (`identity`, `noop`, `main`, etc.)
+    - Constructors
 - You MUST use function hoisting to declare inner helper functions *below* the outer function so that control flow reads naturally top-to-bottom
 - You SHOULD declare local helper functions AFTER the call site, to help top-to-bottom module legibility
 - You SHOULD prefer functional code over imperative code
