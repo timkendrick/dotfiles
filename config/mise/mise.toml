@@ -11,6 +11,7 @@ fzf = "latest"
 glow = "latest"
 go = "latest"
 helm = "3.18.4"
+java = "21"
 jj = "latest"
 jjui = "latest"
 k9s = "latest"
@@ -54,7 +55,6 @@ watchexec = "latest"
 "npm:typescript" = "latest"
 "npm:typescript-language-server" = "latest"
 "npm:yaml-language-server" = "latest"
-mr-boxington = { version = "latest", workflow = "release.yml@refs/heads/main" }
 
 [settings]
 experimental = true

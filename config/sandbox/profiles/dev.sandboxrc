@@ -31,6 +31,7 @@
 --plugin git
 --plugin go
 --plugin helm
+--plugin java
 --plugin jj
 --plugin maven
 --plugin mise
