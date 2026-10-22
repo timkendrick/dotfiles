@@ -50,7 +50,6 @@
 --plugin rust
 --plugin rustup
 --plugin sccache
---plugin ssh
 --plugin storybook
 --plugin tt
 --plugin vcs
