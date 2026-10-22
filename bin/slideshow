@@ -1,0 +1,399 @@
+#!/usr/bin/env bash
+#
+# Generate a reveal-md slideshow from a markdown document.
+#
+# The script defaults to a single-file HTML artifact with an opinionated stylesheet and minimal plugin set.
+#
+# Relayed path options are resolved against the caller's working directory.
+# Stylesheets and scripts outside the document's directory are copied into a temporary directory beside the document
+# for the duration of the process.
+#
+# By default, the document is rendered as a single self-contained HTML file on stdout.
+# `--static <file>.html` (or a bare `--static`) writes that file to disk instead.
+# `--serve` starts the standard reveal-md live-reload server.
+#
+# See https://github.com/webpro/reveal-md for more details.
+
+set -euo pipefail
+
+config_dir="$(realpath "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../config/slideshow")"
+reveal_md=(npx --yes reveal-md@6)
+
+log() {
+  echo "$*" >&2
+}
+
+# Prints reveal-md's help, adapted to describe this script's additional `--static` behavior.
+usage() {
+  local help
+  if ! help="$("${reveal_md[@]}" --help 2>/dev/null)"; then
+    log "warning: failed to load reveal-md help"
+    help="Usage: cli <slides.md> [options]"
+  fi
+  local name sep=$'\x1f'
+  name="$(basename "$0")"
+  printf '%s\n' "$help" | node "$config_dir/scripts/format-help.mjs" "$name" \
+    --usage "$name <slides.md>${sep}Bundle into one self-contained HTML file on stdout" \
+    --usage "$name <slides.md> --static <file>.html${sep}Bundle into one self-contained HTML file" \
+    --usage "$name <slides.md> --static${sep}Bundle into <slides>.md.html beside the .md file" \
+    --usage "$name <slides.md> --serve${sep}Serve with live reload" \
+    --arg="--static [filename]${sep}Export self-contained html to file ending in .html/.htm [<slides>.md.html]${sep}--static-dirs" \
+    --arg="--serve${sep}Serve the presentation with live reload instead of writing it to stdout. Incompatible with --static and --print.${sep}-w, --watch"
+  return 0
+}
+
+canonicalize_existing() {
+  if [[ ! -e "$1" ]]; then
+    log "error: no such file: $1"
+    return 1
+  fi
+  realpath "$1"
+}
+
+canonicalize_output() {
+  local parent
+  parent="$(dirname "$1")"
+  if [[ ! -d "$parent" ]]; then
+    log "error: output directory does not exist: $parent"
+    return 1
+  fi
+  echo "$(realpath "$parent")/$(basename "$1")"
+}
+
+absolute_path() {
+  if [[ "$1" == /* ]]; then
+    echo "$1"
+  else
+    echo "$PWD/$1"
+  fi
+}
+
+is_url() {
+  [[ "$1" == *://* || "$1" == //* ]]
+}
+
+relative_to_md_dir() {
+  node "$config_dir/scripts/relative-path.mjs" "$md_dir" "$1"
+}
+
+join_by_comma() {
+  local IFS=','
+  echo "$*"
+}
+
+is_within_md_dir() {
+  [[ "$1" == "$md_dir"/* ]]
+}
+
+# Prints a path relative to the document's directory that reveal-md can export, copying the source
+# into the assets directory if it lies outside the document's directory.
+exportable_asset_path() {
+  local source="$1" target
+  if is_within_md_dir "$source"; then
+    echo "${source#"$md_dir"/}"
+    return 0
+  fi
+  target="$assets_dir/$(basename "$source")"
+  if [[ -e "$target" ]]; then
+    target="$(mktemp -d "$assets_dir/XXXX")/$(basename "$source")" || return 1
+  fi
+  cp "$source" "$target" || return 1
+  echo "${target#"$md_dir"/}"
+}
+
+# Prints the comma-separated asset list with each local file replaced by its exportable path.
+rewrite_asset_list() {
+  local entries=() entry source exportable_path rewritten=()
+  IFS=',' read -r -a entries <<<"$1"
+  for entry in ${entries[@]+"${entries[@]}"}; do
+    if is_url "$entry"; then
+      rewritten+=("$entry")
+      continue
+    fi
+    source="$(canonicalize_existing "$entry")" || return 1
+    exportable_path="$(exportable_asset_path "$source")" || return 1
+    rewritten+=("$exportable_path")
+  done
+  join_by_comma ${rewritten[@]+"${rewritten[@]}"}
+}
+
+# Prints the comma-separated path list with each path made relative to the document's directory.
+rewrite_relative_list() {
+  local entries=() entry source relative_path rewritten=()
+  IFS=',' read -r -a entries <<<"$1"
+  for entry in ${entries[@]+"${entries[@]}"}; do
+    source="$(canonicalize_existing "$entry")" || return 1
+    relative_path="$(relative_to_md_dir "$source")" || return 1
+    rewritten+=("$relative_path")
+  done
+  join_by_comma ${rewritten[@]+"${rewritten[@]}"}
+}
+
+# Usage: frontmatter_fields CONTENT FIELD...
+# Extracts the requested frontmatter fields in a single pass, preserving file
+# order. Emits one "FIELD:VALUE" line per matching frontmatter entry, with the
+# key's leading whitespace stripped from VALUE but quotes preserved.
+#
+# The frontmatter block is strictly the leading delimited block: CONTENT must
+# begin with a '---' line, and parsing stops at the closing '---'. Any '---'
+# lines appearing later (e.g. inside a fenced code block in the body) are
+# ignored, so body content can never be mistaken for frontmatter.
+frontmatter_fields() {
+  local content="$1"; shift
+  local line sep=0 first=1 key val field
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ -n "$first" ]]; then
+      first=''
+      [[ "$line" == '---' ]] || return 0
+    fi
+    if [[ "$line" == '---' ]]; then
+      sep=$(( sep + 1 ))
+      [[ $sep -eq 2 ]] && return 0
+      continue
+    fi
+    [[ $sep -eq 1 && "$line" == *:* ]] || continue
+    key="${line%%:*}"
+    for field in "$@"; do
+      if [[ "$key" == "$field" ]]; then
+        val="${line#"$key":}"
+        val="${val#"${val%%[!$' \t']*}"}"
+        printf '%s:%s\n' "$key" "$val"
+        break
+      fi
+    done
+  done <<< "$content"
+}
+
+is_html_path() {
+  local lowercase
+  lowercase="$(tr '[:upper:]' '[:lower:]' <<<"$1")"
+  [[ "$lowercase" == *.html || "$lowercase" == *.htm ]]
+}
+
+if [[ $# -eq 0 ]]; then
+  usage >&2
+  exit 1
+fi
+
+for arg in "$@"; do
+  case "$arg" in
+    -h | --help)
+      usage
+      exit 0
+      ;;
+  esac
+done
+
+if [[ "$1" == -* ]]; then
+  exec "${reveal_md[@]}" "$@"
+fi
+
+if [[ "$1" != *.md || ! -f "$1" ]]; then
+  log "error: first argument must be an existing .md file: $1"
+  usage >&2
+  exit 1
+fi
+
+md_path="$(canonicalize_existing "$1")" || exit 1
+shift
+
+passthrough_args=()
+option_names=()
+option_values=()
+has_serve=false
+has_static=false
+has_print=false
+has_css=false
+has_theme=false
+has_template=false
+
+while [[ $# -gt 0 ]]; do
+  arg="$1"
+  shift
+  if [[ "$arg" == --serve ]]; then
+    has_serve=true
+    continue
+  fi
+  name="${arg%%=*}"
+  case "$name" in
+    --static)
+      has_static=true
+      ;;
+    --print)
+      has_print=true
+      ;;
+    --css)
+      has_css=true
+      ;;
+    --theme)
+      has_theme=true
+      ;;
+    --template)
+      has_template=true
+      ;;
+  esac
+  case "$name" in
+    --css | --scripts | --static-dirs | --template | --listing-template | --preprocessor | \
+      --puppeteer-chromium-executable | --static | --print) ;;
+    *)
+      passthrough_args+=("$arg")
+      continue
+      ;;
+  esac
+  if [[ "$arg" == *=* ]]; then
+    value="${arg#*=}"
+  elif [[ $# -gt 0 && "$1" != -* ]]; then
+    value="$1"
+    shift
+  else
+    value=""
+  fi
+  if [[ -z "$value" && "$name" != --static && "$name" != --print ]]; then
+    log "error: missing value for $name"
+    usage >&2
+    exit 1
+  fi
+  option_names+=("$name")
+  option_values+=("$value")
+done
+
+if [[ "$has_serve" == true && ( "$has_static" == true || "$has_print" == true ) ]]; then
+  log "error: --serve is incompatible with --static and --print"
+  usage >&2
+  exit 1
+fi
+
+has_frontmatter_style=false
+if [[ -n "$(frontmatter_fields "$(<"$md_path")" theme css)" ]]; then
+  has_frontmatter_style=true
+fi
+
+# Supply the default theme, stylesheets and template as if they had been specified explicitly.
+if [[ "$has_css" == false && "$has_theme" == false && "$has_frontmatter_style" == false ]]; then
+  passthrough_args+=(--theme white)
+  default_css_files=()
+  for css_file in "$config_dir"/css/*; do
+    if [[ -f "$css_file" ]]; then
+      default_css_files+=("$css_file")
+    fi
+  done
+  if [[ ${#default_css_files[@]} -gt 0 ]]; then
+    option_names+=(--css)
+    option_values+=("$(join_by_comma "${default_css_files[@]}")")
+  fi
+fi
+if [[ "$has_template" == false ]]; then
+  option_names+=(--template)
+  option_values+=("$config_dir/template/index.html")
+fi
+
+md_dir="$(dirname "$md_path")"
+md_file="$(basename "$md_path")"
+md_name="$(basename "$md_path" .md)"
+
+# Remove temporary build directories on script exit
+assets_dir=""
+build_dir=""
+cleanup() {
+  if [[ -n "$assets_dir" ]]; then
+    rm -rf "$assets_dir"
+  fi
+  if [[ -n "$build_dir" ]]; then
+    rm -rf "$build_dir"
+  fi
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+# Create the assets directory only if a stylesheet or script lies outside the document's directory.
+for index in ${option_names[@]+"${!option_names[@]}"}; do
+  case "${option_names[$index]}" in
+    --css | --scripts)
+      entries=()
+      IFS=',' read -r -a entries <<<"${option_values[$index]}"
+      for entry in ${entries[@]+"${entries[@]}"}; do
+        if is_url "$entry"; then
+          continue
+        fi
+        source="$(canonicalize_existing "$entry")" || exit 1
+        if [[ -z "$assets_dir" ]] && ! is_within_md_dir "$source"; then
+          assets_dir="$(mktemp -d "$md_dir/.reveal-md-assets-XXXX")" || exit 1
+        fi
+      done
+      ;;
+  esac
+done
+
+rewritten_args=()
+has_static_value=false
+bundle_output_path=""
+if [[ "$has_serve" == false && "$has_static" == false && "$has_print" == false ]]; then
+  bundle_output_path="-"
+fi
+
+for index in ${option_names[@]+"${!option_names[@]}"}; do
+  name="${option_names[$index]}"
+  value="${option_values[$index]}"
+  case "$name" in
+    --css | --scripts)
+      rewritten_value="$(rewrite_asset_list "$value")" || exit 1
+      rewritten_args+=("$name" "$rewritten_value")
+      ;;
+    --static-dirs)
+      rewritten_value="$(rewrite_relative_list "$value")" || exit 1
+      rewritten_args+=("$name" "$rewritten_value")
+      ;;
+    --template | --listing-template)
+      source="$(canonicalize_existing "$value")" || exit 1
+      relative_path="$(relative_to_md_dir "$source")" || exit 1
+      rewritten_args+=("$name" "$relative_path")
+      ;;
+    --preprocessor | --puppeteer-chromium-executable)
+      source="$(canonicalize_existing "$value")" || exit 1
+      rewritten_args+=("$name" "$source")
+      ;;
+    --print)
+      if [[ -z "$value" ]]; then
+        rewritten_args+=("$name")
+      else
+        rewritten_args+=("$name" "$(absolute_path "$value")")
+      fi
+      ;;
+    --static)
+      if [[ "$has_static_value" == true ]]; then
+        log "error: --static specified more than once"
+        exit 1
+      fi
+      has_static_value=true
+      if [[ -z "$value" ]]; then
+        bundle_output_path="$md_dir/$md_file.html"
+      elif is_html_path "$value"; then
+        bundle_output_path="$(canonicalize_output "$value")" || exit 1
+      else
+        rewritten_args+=("$name" "$(absolute_path "$value")")
+      fi
+      ;;
+  esac
+done
+
+# Prepare a temporary build directory if bundling the HTML output into a single file.
+if [[ -n "$bundle_output_path" ]]; then
+  build_dir="$(mktemp -d)"
+  rewritten_args+=(--static "$build_dir")
+fi
+
+# Run the underlying reveal-md command (this must be run from the markdown file's directory)
+(
+  cd "$md_dir" &&
+    "${reveal_md[@]}" "$md_file" ${passthrough_args[@]+"${passthrough_args[@]}"} "${rewritten_args[@]}" >&2
+)
+
+# Bundle the HTML output into a single file if requested.
+if [[ -n "$bundle_output_path" ]]; then
+  entry_html="$build_dir/$md_name.html"
+  if [[ ! -f "$entry_html" ]]; then
+    entry_html="$build_dir/index.html"
+  fi
+  node "$config_dir/scripts/bundle-html.mjs" "$entry_html" "$bundle_output_path"
+fi

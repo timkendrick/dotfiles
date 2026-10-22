@@ -1,0 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap');
+
+:root {
+  --custom-bg: #faf9f5;
+  --custom-surface: #f0eee6;
+  --custom-border: #e5e2d9;
+  --custom-text: #4a3427;
+  --custom-muted: #7a6455;
+  --custom-accent: #d97757;
+  --custom-accent-dark: #c6613f;
+  --custom-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --custom-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --custom-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --r-background-color: var(--custom-bg);
+  --r-main-font: var(--custom-sans);
+  --r-main-font-size: 28px;
+  --r-main-color: var(--custom-text);
+  --r-heading-font: var(--custom-serif);
+  --r-heading-color: var(--custom-text);
+  --r-heading-font-weight: 500;
+  --r-heading-text-transform: none;
+  --r-heading-letter-spacing: -0.015em;
+  --r-heading-line-height: 1.2;
+  --r-link-color: var(--custom-accent-dark);
+  --r-link-color-hover: var(--custom-accent);
+  --r-selection-background-color: rgba(217, 119, 87, 0.25);
+  --r-code-font: var(--custom-mono);
+}
+
+.reveal-viewport,
+body {
+  background: var(--custom-bg);
+}
+
+.reveal {
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.reveal .slides {
+  text-align: left;
+}
+
+.reveal .slides section > * {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.reveal h1 {
+  font-size: 2.2em;
+}
+
+.reveal h2 {
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
+  margin-bottom: 0.8em;
+  border-bottom: 1px solid var(--custom-border);
+}
+
+.reveal h3 {
+  font-size: 1.15em;
+  color: var(--custom-muted);
+}
+
+.reveal p,
+.reveal li {
+  line-height: 1.5;
+}
+
+.reveal ul,
+.reveal ol {
+  display: block;
+  margin-left: 1.2em;
+}
+
+.reveal li {
+  margin-bottom: 1em;
+}
+
+.reveal li::marker {
+  color: var(--custom-accent);
+}
+
+.reveal ul ul,
+.reveal ol ul {
+  margin-top: 0.35em;
+  font-size: 0.9em;
+  color: var(--custom-muted);
+}
+
+.reveal strong {
+  font-weight: 600;
+}
+
+.reveal blockquote {
+  width: auto;
+  margin: 0.8em 0;
+  padding: 0.6em 1em;
+  font-family: var(--r-heading-font);
+  font-style: normal;
+  background: var(--custom-surface);
+  border-left: 3px solid var(--custom-accent);
+  border-radius: 0 6px 6px 0;
+  box-shadow: none;
+}
+
+.reveal blockquote p {
+  margin: 0;
+}
+
+.reveal code {
+  font-family: var(--custom-mono);
+  font-size: 0.85em;
+}
+
+.reveal :not(pre) > code {
+  padding: 0.1em 0.35em;
+  background: var(--custom-surface);
+  border: 1px solid var(--custom-border);
+  border-radius: 4px;
+}
+
+.reveal pre {
+  width: 100%;
+  font-size: 0.6em;
+  line-height: 1.6;
+  box-shadow: none;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.reveal pre code {
+  padding: 1em 1.2em;
+  max-height: none;
+  font-size: 1em;
+}
+
+.reveal table {
+  margin: 0;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+
+.reveal table th,
+.reveal table td {
+  padding: 0.5em 1em;
+  border-bottom: 1px solid var(--custom-border);
+}
+
+.reveal table th {
+  font-weight: 600;
+  background: var(--custom-surface);
+}
+
+.reveal .controls,
+.reveal .progress {
+  color: var(--custom-accent);
+}
+
+/* Title slide */
+.reveal .slides > section:first-child,
+.reveal .slides > section:first-child h1 {
+  text-align: center;
+}
