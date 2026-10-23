@@ -46,7 +46,7 @@ Limits:
 
 - The path ends at the first unescaped `:` followed by a digit or `@`.
 - In a path, write a space as `\ `, a backslash as `\\`, `#` as `\#`, and `:` as `\:`. Any other backslash is an error. For example, `docs/release notes.md` becomes `docs/release\ notes.md`.
-- Revisions cannot contain whitespace or backslashes.
+- Revisions cannot contain whitespace.
 - A revision must resolve to exactly one commit.
 - Pinned revisions require a VCS. A bundle for files outside a repository must not use pins.
 

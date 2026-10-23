@@ -46,7 +46,7 @@ Bundle grammar (one item per line):
   The path ends at the first unescaped ":" followed by a digit or "@".
   In a path, write a space as "\ ", a backslash as "\\", "#" as "\#", and
   ":" as "\:". Any other backslash is an error.
-  Revisions cannot contain whitespace or backslashes.
+  Revisions cannot contain whitespace.
 
 Example:
   # @a1b2c3d
