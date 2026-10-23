@@ -44,8 +44,9 @@ The revision `@` always means the working copy, in both git and jj. Thus `:@@` r
 
 Limits:
 
-- The path ends at the first `:` followed by a digit or `@`.
-- Paths and revisions cannot contain whitespace.
+- The path ends at the first unescaped `:` followed by a digit or `@`.
+- In a path, write a space as `\ `, a backslash as `\\`, `#` as `\#`, and `:` as `\:`. Any other backslash is an error. For example, `docs/release notes.md` becomes `docs/release\ notes.md`.
+- Revisions cannot contain whitespace or backslashes.
 - A revision must resolve to exactly one commit.
 - Pinned revisions require a VCS. A bundle for files outside a repository must not use pins.
 
