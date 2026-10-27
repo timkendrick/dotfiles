@@ -2,7 +2,7 @@
 name: reviewer
 display_name: Reviewer
 description: Reviews an implemented change set against its plan step, annotating findings as FIXME comments
-model: github-copilot/gpt-5.6-sol
+model: github-copilot/gpt-6.1-sol
 thinking: high
 tools: read, edit, bash, grep, find, ls
 system-prompt: append
