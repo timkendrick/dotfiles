@@ -6,8 +6,8 @@ model: anthropic/claude-opus-5
 thinking: high
 tools: read, write, bash, grep, find, ls
 allowed_subagents: skilled-worker, unskilled-worker, reviewer
-prompt_mode: append
-color: orange
+system-prompt: append
+session-mode: lineage-only
 ---
 
 # Role: delivery manager

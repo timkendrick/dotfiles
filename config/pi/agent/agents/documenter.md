@@ -5,8 +5,8 @@ description: Adds code comments and technical documentation
 model: github-copilot/gpt-6-sol
 thinking: high
 tools: read, write, edit, grep, find, ls
-prompt_mode: append
-color: green
+system-prompt: append
+session-mode: lineage-only
 ---
 
 # Role: documenter

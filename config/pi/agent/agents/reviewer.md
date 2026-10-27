@@ -5,8 +5,8 @@ description: Reviews an implemented change set against its plan step, annotating
 model: github-copilot/gpt-5.6-sol
 thinking: high
 tools: read, edit, bash, grep, find, ls
-prompt_mode: append
-color: red
+system-prompt: append
+session-mode: lineage-only
 ---
 
 # Role: reviewer
