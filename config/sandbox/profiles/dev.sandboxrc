@@ -41,6 +41,7 @@
 --plugin nuget
 --plugin nx
 --plugin ollama
+--plugin ovis
 --plugin perplexity
 --plugin pi
 --plugin pipenv

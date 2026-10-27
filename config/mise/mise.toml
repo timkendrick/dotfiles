@@ -3,6 +3,7 @@ argo = "latest"
 ast-grep = "latest"
 awscli = { version = "latest", symlink_bins = "true" }
 biome = "latest"
+bun = "latest"
 claude-code = "latest"
 dotnet = "latest"
 duckdb = "latest"
