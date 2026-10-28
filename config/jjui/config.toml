@@ -1,0 +1,5 @@
+[ui]
+mouse_support = false
+
+[revisions]
+revset = "ancestors(@) | builtin_immutable_heads()"

@@ -47,6 +47,12 @@ scripts/link-config-dir .agents ~/.claude --rename 's/^AGENTS\.md$/CLAUDE.md/' -
 scripts/merge-json ~/.claude.json < config/claude/mcp.json
 ```
 
+Register `jjui` configuration:
+
+```bash
+scripts/link-config-dir config/jjui ~/.config/jjui
+```
+
 Register `sandbox` configuration presets:
 
 ```bash
