@@ -8,3 +8,5 @@ vim.keymap.set(
   ":call setreg('+', expand('%:.') .. ':' .. line('.'))<CR>",
   { desc = "Copy line path to clipboard" }
 )
+
+vim.keymap.set({ "v" }, "<Leader>y", '"+ygv', { desc = "Copy selection to clipboard" })
