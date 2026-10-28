@@ -145,6 +145,7 @@ for _prompt_plugin in "${(@o)_prompt_plugin_paths}"; do
 done
 
 _hook_precmd_prompt() {
+    _DOTFILES_PROMPT_LAST_EXIT_CODE=$?
     local _p="$_PROMPT_BASE"
     for _fn in "${_PROMPT_MODIFIER_FNS[@]}"; do
         if (( $+functions[$_fn] )); then
