@@ -2,6 +2,7 @@
 # Recursively symlink all files from a source directory into a target directory.
 # Usage: link-config-dir <source> <target> [--dry-run] [--depth <n>] [--rename <pattern>] ...
 set -euo pipefail
+shopt -s dotglob nullglob
 
 usage() {
   cat <<EOF
