@@ -47,6 +47,12 @@ scripts/link-config-dir .agents ~/.claude --rename 's/^AGENTS\.md$/CLAUDE.md/' -
 scripts/merge-json ~/.claude.json < config/claude/mcp.json
 ```
 
+Register `herdr` configuration:
+
+```bash
+scripts/link-config-dir --depth 0 config/herdr ~/.config/herdr
+```
+
 Register `jjui` configuration:
 
 ```bash
