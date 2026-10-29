@@ -6,7 +6,7 @@ model: anthropic/claude-opus-5-5
 thinking: high
 system-prompt: append
 session-mode: lineage-only
-color: purple
+auto-exit: true
 ---
 
 # Role: skilled worker

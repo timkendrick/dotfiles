@@ -6,6 +6,7 @@ model: anthropic/claude-opus-5-5
 thinking: minimal
 system-prompt: append
 session-mode: lineage-only
+auto-exit: true
 ---
 
 # Role: unskilled worker

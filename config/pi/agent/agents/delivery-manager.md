@@ -8,6 +8,7 @@ tools: read, write, bash, grep, find, ls
 allowed_subagents: skilled-worker, unskilled-worker, reviewer
 system-prompt: append
 session-mode: lineage-only
+auto-exit: true
 ---
 
 # Role: delivery manager

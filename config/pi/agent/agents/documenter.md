@@ -7,6 +7,7 @@ thinking: high
 tools: read, write, edit, grep, find, ls
 system-prompt: append
 session-mode: lineage-only
+auto-exit: true
 ---
 
 # Role: documenter

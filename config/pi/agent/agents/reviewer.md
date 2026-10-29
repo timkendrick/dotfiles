@@ -7,6 +7,7 @@ thinking: high
 tools: read, edit, bash, grep, find, ls
 system-prompt: append
 session-mode: lineage-only
+auto-exit: true
 ---
 
 # Role: reviewer
