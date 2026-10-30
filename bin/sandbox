@@ -133,6 +133,7 @@ Usage:
   $(basename "$0") [options] -- <command> [arguments...]  Run command inside the sandbox
   $(basename "$0") profile list  List available profile names
   $(basename "$0") plugin list   List available plugin names
+  $(basename "$0") logs [log stream options...]  Stream sandbox violation messages from the kernel log
 
 Options:
   -h, --help                  Show this help message and exit
@@ -382,8 +383,13 @@ resolve_dir() {
     fi
 }
 
-# Collect CLI option tokens (everything before --) and _SANDBOX_COMMAND_ARGS (everything after).
-# Also handle --help early since it exits immediately.
+# Handle "info" subcommands early, before parsing the rest of the arguments.
+
+if [[ "${1:-}" == "logs" ]]; then
+    shift
+    exec log stream --predicate 'process == "kernel" AND senderImagePath == "/System/Library/Extensions/Sandbox.kext/Contents/MacOS/Sandbox" AND messageType == 16' "$@"
+fi
+
 case "${1:-} ${2:-}" in
     "profile list")
         list_profiles | awk '{print $1}'
@@ -394,6 +400,10 @@ case "${1:-} ${2:-}" in
         exit 0
         ;;
 esac
+
+
+# Collect CLI option tokens (everything before --) and _SANDBOX_COMMAND_ARGS (everything after).
+# Also handle --help early since it exits immediately.
 
 _SANDBOX_HAS_COMMAND=false
 _SANDBOX_COMMAND_ARGS=()
