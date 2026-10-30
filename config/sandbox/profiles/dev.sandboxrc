@@ -28,6 +28,7 @@
 --plugin docker
 --plugin dotnet
 --plugin duckdb
+--plugin ghostty
 --plugin git
 --plugin go
 --plugin helm
