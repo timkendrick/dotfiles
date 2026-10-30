@@ -70,7 +70,8 @@ find_plugin() {
     [[ -d "$_SANDBOX_PLUGINS_DIR" ]] || return 0
     if [[ -f "$_SANDBOX_PLUGINS_DIR/$name.sb" ]]; then
         echo "$_SANDBOX_PLUGINS_DIR/$name.sb"
-    elif [[ -f "$_SANDBOX_PLUGINS_DIR/$name.sh" ]]; then
+    fi
+    if [[ -f "$_SANDBOX_PLUGINS_DIR/$name.sh" ]]; then
         echo "$_SANDBOX_PLUGINS_DIR/$name.sh"
     fi
     if [[ -f "$_SANDBOX_PLUGINS_DIR/$name.env" ]]; then
@@ -535,8 +536,8 @@ process_args() {
                 _sandbox_plugin_env_patterns=()
                 for plugin_file in "${plugin_files[@]}"; do
                     case "$plugin_file" in
-                        *.sh) plugin_rules=$(bash "$plugin_file") ;;
-                        *.sb) plugin_rules=$(cat "$plugin_file") ;;
+                        *.sh) plugin_rules+="${plugin_rules:+$'\n'}$(bash "$plugin_file")" ;;
+                        *.sb) plugin_rules+="${plugin_rules:+$'\n'}$(cat "$plugin_file")" ;;
                         *.env) read_env_file "$plugin_file" ;;
                     esac
                 done
