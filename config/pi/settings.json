@@ -30,5 +30,28 @@
   "retry": {
     "baseDelayMs": 1000,
     "maxRetries": 15
+  },
+  "powerline": {
+    "preset": "default",
+    "layout": {
+      "left": [
+        "custom:sandbox",
+        "model",
+        "thinking",
+        "shell_mode",
+        "path",
+        "git",
+        "queue",
+        "context_pct",
+        "cache_read",
+        "cost"
+      ]
+    },
+    "customItems": [
+      {
+        "id": "sandbox",
+        "selfColorize": true
+      }
+    ]
   }
 }
