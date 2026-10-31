@@ -1,0 +1,2 @@
+;; Allow read-only access to ~/.local/share/cursor-agent
+(allow file-read* (subpath (string-append (param "HOME") "/.local/share/cursor-agent")))

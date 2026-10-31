@@ -25,6 +25,7 @@
 --plugin colima
 --plugin context7
 --plugin curl
+--plugin cursor
 --plugin docker
 --plugin dotnet
 --plugin duckdb
