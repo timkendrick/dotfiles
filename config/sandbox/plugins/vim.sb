@@ -1,3 +1,4 @@
-;; Allow read-only access to ~/.vimrc and ~/.vim
+;; Allow read-only access to ~/.viminfo, ~/.vimrc and ~/.vim
+(allow file-read* (literal (string-append (param "HOME") "/.viminfo")))
 (allow file-read* (literal (string-append (param "HOME") "/.vimrc")))
 (allow file-read* (subpath (string-append (param "HOME") "/.vim")))
