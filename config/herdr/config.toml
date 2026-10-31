@@ -25,6 +25,12 @@ rows = [
 [[keys.command]]
 key = "prefix+ctrl+r"
 type = "plugin_action"
+command = "beyondlex.herdr-recent-navigator.focus-workspaces"
+description = "Open Navigator: Workspace"
+
+[[keys.command]]
+key = "prefix+ctrl+j"
+type = "plugin_action"
 command = "mroth.jj-status.refresh"
 description = "refresh jj status"
 
