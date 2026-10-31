@@ -26,4 +26,17 @@ return {
       },
     },
   },
+  -- When running in a sandbox, disable sidekick.nvim agent backends that inspect other processes (opencode via `lsof`, tmux via `ps`)
+  {
+    "folke/sidekick.nvim",
+    config = function(_, opts)
+      require("sidekick").setup(opts)
+      if vim.env.SANDBOX then
+        require("sidekick.config").cli.tools.opencode = nil
+        local Session = require("sidekick.cli.session")
+        Session.setup()
+        Session.backends.tmux = nil
+      end
+    end,
+  },
 }
