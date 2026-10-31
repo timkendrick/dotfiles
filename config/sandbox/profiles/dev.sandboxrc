@@ -42,6 +42,7 @@
 --plugin node
 --plugin npm
 --plugin nuget
+--plugin nvim
 --plugin nx
 --plugin ollama
 --plugin ovis

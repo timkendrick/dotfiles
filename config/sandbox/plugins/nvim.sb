@@ -1,0 +1,6 @@
+;; Allow read+write access to nvim configuration directories
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.cache/nvim")))
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.config/nvim")))
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.local/share/nvim")))
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.local/state/nvim")))
+
