@@ -48,6 +48,17 @@ command = "jjui"
 width = "80%"
 height = "80%"
 
+[[keys.command]]
+key = "prefix+shift+h"
+type = "plugin_action"
+command = "jhochenbaum.hunkdiff.review"
+description = "hunk: review changes"
+
+[[keys.command]]
+key = "prefix+shift+s"
+type = "plugin_action"
+command = "jhochenbaum.hunkdiff.send-review"
+description = "hunk: send review to agent"
 [keys]
 copy_mode = "prefix+v"
 goto = "prefix+/"
