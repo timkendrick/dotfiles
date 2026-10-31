@@ -25,6 +25,12 @@ mkdir -p ~/.vim/pack
 ln -s ~/.config/dotfiles/vim-plugins ~/.vim/pack/dotfiles
 ```
 
+Register `ghostty` configuration:
+
+```bash
+scripts/link-config-dir config/ghostty ~/Library/Application\ Support/com.mitchellh.ghostty
+```
+
 Register `nvim` configuration:
 
 ```bash

@@ -1,0 +1,5 @@
+macos-option-as-alt = true
+keybind = alt+3=text:#
+keybind = alt+;=text:…
+
+font-feature = -calt, -liga, -dlig

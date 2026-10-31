@@ -1,0 +1,2 @@
+;; Allow read-only access to ~/Library/Application Support/com.mitchellh.ghostty
+(allow file-read* (subpath (string-append (param "HOME") "/Library/Application Support/com.mitchellh.ghostty")))
