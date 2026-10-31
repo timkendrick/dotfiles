@@ -41,6 +41,12 @@ command = "jt.command-palette.open"
 description = "Command palette"
 
 [[keys.command]]
+key = "prefix+m"
+type = "plugin_action"
+command = "osamahbeig.pane-mover.open"
+description = "move this pane"
+
+[[keys.command]]
 key = "prefix+g"
 type = "popup"
 command = "lazygit"
@@ -65,6 +71,7 @@ key = "prefix+shift+s"
 type = "plugin_action"
 command = "jhochenbaum.hunkdiff.send-review"
 description = "hunk: send review to agent"
+
 [keys]
 copy_mode = "prefix+v"
 goto = "prefix+/"
