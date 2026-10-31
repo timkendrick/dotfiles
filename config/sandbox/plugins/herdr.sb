@@ -1,0 +1,5 @@
+;; Allow read-only access to ~/.config/herdr
+(allow file-read* (subpath (string-append (param "HOME") "/.config/herdr")))
+;; Allow read+write access to ~/.local/state/herdr-automatic-rename
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.local/state/herdr-automatic-rename")))
+
