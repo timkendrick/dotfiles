@@ -35,6 +35,12 @@ command = "mroth.jj-status.refresh"
 description = "refresh jj status"
 
 [[keys.command]]
+key = "prefix+p"
+type = "plugin_action"
+command = "jt.command-palette.open"
+description = "Command palette"
+
+[[keys.command]]
 key = "prefix+g"
 type = "popup"
 command = "lazygit"
