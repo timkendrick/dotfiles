@@ -31,6 +31,7 @@
 --plugin duckdb
 --plugin ghostty
 --plugin git
+--plugin github-copilot
 --plugin go
 --plugin helm
 --plugin herdr

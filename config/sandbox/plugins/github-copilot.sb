@@ -1,0 +1,2 @@
+;; Allow read+write access to ~/.config/github-copilot
+(allow file-read* file-write* (subpath (string-append (param "HOME") "/.config/github-copilot")))
