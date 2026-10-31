@@ -36,6 +36,7 @@
 --plugin herdr
 --plugin java
 --plugin jj
+--plugin lazygit
 --plugin maven
 --plugin mise
 --plugin node

@@ -1,0 +1,2 @@
+;; Allow read-only access to lazygit config files
+(allow file-read* (subpath (string-append (param "HOME") "/Library/Application Support/lazygit")))
