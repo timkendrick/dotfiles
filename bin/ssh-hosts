@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SSH_HOSTS_DIR="${SSH_HOSTS_DIR:-$HOME/.ssh/config.d}"
+SSH_CONFIG_PATH="${SSH_CONFIG_PATH:-$HOME/.ssh/config}"
+MANAGED_MARKER="# Managed by ssh-hosts"
+
+usage() {
+  local command_name
+  command_name="$(basename "$0")"
+  cat <<EOF
+Usage: $command_name <subcommand> [arguments...]
+
+Manage SSH host entries, stored as one file per host in $SSH_HOSTS_DIR.
+
+Subcommands:
+  add <alias> [options]   Create or replace the entry for <alias>
+  remove <alias>          Remove the entry for <alias>
+  list                    List the managed entries as "<alias><TAB><path>"
+
+Options for add:
+  --proxy-command <cmd>   ProxyCommand that connects to the host
+  --hostname <name>       HostName to connect to
+  --port <port>           Port to connect to
+  --user <user>           User to log in as
+  --option <key>=<value>  Additional ssh_config option (repeatable)
+
+Options:
+  -h, --help              Show this help message and exit
+
+Environment variables:
+  SSH_HOSTS_DIR           Directory that holds the entries (default: ~/.ssh/config.d)
+  SSH_CONFIG_PATH         SSH config file checked for an Include of the entries (default: ~/.ssh/config)
+
+The SSH config file must include the entries, for example with this line at the top of ~/.ssh/config:
+  Include config.d/*.conf
+
+Example:
+  $command_name add tkendrick.dev.k8s --proxy-command "dev proxy --context dev" --option ServerAliveInterval=30
+EOF
+}
+
+log() {
+  echo "$*" >&2
+}
+
+# Exit with an error unless the alias is a valid SSH host alias
+validate_alias() {
+  local alias="$1"
+  if [[ ! "$alias" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    log "Error: invalid host alias '$alias' (allowed characters: letters, digits, '.', '_', '-')"
+    exit 1
+  fi
+}
+
+entry_path() {
+  echo "$SSH_HOSTS_DIR/$1.conf"
+}
+
+is_managed_entry() {
+  local path="$1"
+  [[ -f "$path" ]] && head -n 1 "$path" | grep -qxF "$MANAGED_MARKER"
+}
+
+# Log a warning if the SSH config file does not include the entries directory
+warn_if_not_included() {
+  if ! grep -qE '^[[:space:]]*Include[[:space:]].*config\.d' "$SSH_CONFIG_PATH" 2>/dev/null; then
+    log "Warning: $SSH_CONFIG_PATH does not include $SSH_HOSTS_DIR. Add this line at the top of the file:"
+    log "  Include config.d/*.conf"
+  fi
+}
+
+cmd_add() {
+  local alias="$1"
+  shift
+  local options=("$@")
+  local path
+  path="$(entry_path "$alias")"
+  if [[ -e "$path" ]] && ! is_managed_entry "$path"; then
+    log "Error: $path exists and is not managed by $(basename "$0")"
+    exit 1
+  fi
+  mkdir -p "$SSH_HOSTS_DIR"
+  chmod 700 "$SSH_HOSTS_DIR"
+  {
+    echo "$MANAGED_MARKER"
+    echo "Host $alias"
+    local option
+    for option in ${options[@]+"${options[@]}"}; do
+      echo "    ${option%%=*} ${option#*=}"
+    done
+  } >"$path"
+  chmod 600 "$path"
+  log "Added SSH host entry: $alias ($path)"
+  warn_if_not_included
+}
+
+cmd_remove() {
+  local alias="$1"
+  local path
+  path="$(entry_path "$alias")"
+  if [[ ! -e "$path" ]]; then
+    log "No SSH host entry for $alias"
+    return
+  fi
+  if ! is_managed_entry "$path"; then
+    log "Error: $path is not managed by $(basename "$0")"
+    exit 1
+  fi
+  rm "$path"
+  log "Removed SSH host entry: $alias"
+}
+
+cmd_list() {
+  local path name
+  for path in "$SSH_HOSTS_DIR"/*.conf; do
+    is_managed_entry "$path" || continue
+    name="${path##*/}"
+    printf '%s\t%s\n' "${name%.conf}" "$path"
+  done
+  return 0
+}
+
+# Parse command-line arguments
+if [[ $# -eq 0 ]]; then
+  usage >&2
+  exit 1
+fi
+subcommand="$1"
+shift
+case "$subcommand" in
+  -h|--help) usage; exit 0 ;;
+  add)
+    alias=""
+    add_options=()
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        -h|--help) usage; exit 0 ;;
+        --proxy-command|--hostname|--port|--user|--option)
+          if [[ $# -lt 2 ]]; then
+            log "Error: $1 requires a value"
+            usage >&2
+            exit 1
+          fi
+          case "$1" in
+            --proxy-command) add_options+=("ProxyCommand=$2") ;;
+            --hostname) add_options+=("HostName=$2") ;;
+            --port) add_options+=("Port=$2") ;;
+            --user) add_options+=("User=$2") ;;
+            --option)
+              if [[ "$2" != ?*=* ]]; then
+                log "Error: --option requires the form <key>=<value>"
+                exit 1
+              fi
+              add_options+=("$2")
+              ;;
+          esac
+          shift 2
+          ;;
+        -*) log "Unknown option: $1"; usage >&2; exit 1 ;;
+        *)
+          if [[ -n "$alias" ]]; then
+            usage >&2
+            exit 1
+          fi
+          alias="$1"
+          shift
+          ;;
+      esac
+    done
+    if [[ -z "$alias" ]]; then
+      usage >&2
+      exit 1
+    fi
+    validate_alias "$alias"
+    cmd_add "$alias" ${add_options[@]+"${add_options[@]}"}
+    ;;
+  remove)
+    case "${1:-}" in
+      -h|--help) usage; exit 0 ;;
+    esac
+    if [[ $# -ne 1 || "$1" == -* ]]; then
+      usage >&2
+      exit 1
+    fi
+    validate_alias "$1"
+    cmd_remove "$1"
+    ;;
+  list)
+    case "${1:-}" in
+      -h|--help) usage; exit 0 ;;
+    esac
+    if [[ $# -ne 0 ]]; then
+      usage >&2
+      exit 1
+    fi
+    cmd_list
+    ;;
+  *)
+    log "Unknown subcommand: $subcommand"
+    usage >&2
+    exit 1
+    ;;
+esac
