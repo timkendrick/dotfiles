@@ -170,6 +170,10 @@ Examples:
 
 The default sandbox has no permissions; all access must be explicitly granted.
 
+On operating systems other than macOS, sandbox-exec is not available. The command
+runs directly, without restrictions and with the full environment, and a warning
+is logged to stderr.
+
 The sandboxed command receives only whitelisted environment variables, plus
 SANDBOX=1. Plugins and --env options add variables to the whitelist:
   - A plugin may include a <name>.env file next to its rules file, or only a
@@ -676,6 +680,12 @@ apply_env_whitelist() {
     done
     export SANDBOX=1
 }
+
+# Run the command without a sandbox if sandbox-exec is not available on this operating system
+if [[ "$OSTYPE" != darwin* ]]; then
+    echo "Warning: sandbox-exec requires macOS. Running the command without a sandbox." >&2
+    exec "${_SANDBOX_COMMAND_ARGS[@]}"
+fi
 
 _sandbox_home="$(realpath "$HOME")"
 _sandbox_tmpdir="$(realpath "$TMPDIR")"
