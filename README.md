@@ -17,6 +17,13 @@ echo 'source "$HOME/.config/dotfiles/.bashrc"' >> ~/.bashrc
 echo 'source "$HOME/.config/dotfiles/.zshrc"' >> ~/.zshrc
 ```
 
+Install `brew` and `Brewfile` packages:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew bundle install --file config/brew/Brewfile
+```
+
 Load `.vimrc` configuration and plugins:
 
 ```bash

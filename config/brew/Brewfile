@@ -1,0 +1,56 @@
+# Get/set bluetooth power and discoverable state
+brew "blueutil"
+# Container runtimes on MacOS (and Linux) with minimal setup
+brew "colima", restart_service: :changed
+# Get a file from an HTTP, HTTPS or FTP server
+brew "curl", link: true
+# Play, record, convert, and stream select audio and video codecs
+brew "ffmpeg"
+# Distributed revision control system
+brew "git"
+# Improved top (interactive process viewer)
+brew "htop"
+# C/C++ and Java libraries for Unicode and globalization
+brew "icu4c@79"
+# Tools and libraries to manipulate images in select formats
+brew "imagemagick"
+# Postgres C API library
+brew "libpq"
+# Generic machine emulator and virtualizer
+brew "qemu"
+# Additional guest agents for Lima
+brew "lima-additional-guestagents"
+# Polyglot runtime manager (asdf rust clone)
+brew "mise"
+# Create, run, and share large language models (LLMs)
+brew "ollama", restart_service: :changed
+# Package compiler and linker metadata toolkit
+brew "pkgconf"
+# General purpose fuzzy finder TUI
+brew "television"
+# Display directories as trees (with optional color/HTML output)
+brew "tree"
+# Internet file retriever
+brew "wget"
+# Fish-like fast/unobtrusive autosuggestions for zsh
+brew "zsh-autosuggestions"
+# Fish shell like syntax highlighting for zsh
+brew "zsh-syntax-highlighting"
+# Posture monitoring app
+cask "dorso"
+cask "font-bitstream-vera"
+cask "font-hack-nerd-font"
+# Terminal emulator that uses platform-native UI and GPU acceleration
+cask "ghostty"
+# Web browser
+cask "google-chrome"
+# Collaboration platform for API development
+cask "postman"
+# Move and resize windows using keyboard shortcuts or snap areas
+cask "rectangle"
+# Screen recorder and editor
+cask "screen-studio"
+# Open-source code editor
+cask "visual-studio-code"
+# Voice to text app
+cask "voiceink"
