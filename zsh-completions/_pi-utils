@@ -1,0 +1,67 @@
+#compdef pi-utils
+#description helpers for the pi coding agent
+
+# Session-scoped cache for extension paths (populated on the first completion that needs them)
+typeset -g _pi_utils_extension_paths
+
+# Print the output of a pi-utils subcommand, reusing the cached extension paths
+_pi_utils_cached() {
+  if [[ -z "$_pi_utils_extension_paths" ]]; then
+    _pi_utils_extension_paths="$(pi-utils list-extensions 2>/dev/null)"
+  fi
+  PI_EXTENSION_PATHS="$_pi_utils_extension_paths" pi-utils "$@" 2>/dev/null
+}
+
+_pi-utils() {
+  local -a subcommands
+  subcommands=(
+    'install:install pi packages and register them in the pi settings'
+    'uninstall:uninstall pi packages and remove them from the pi settings'
+    'list-extensions:list the installation paths of the installed pi packages'
+    'list-prompts:list the available prompt templates'
+    'prompt:print a prompt template with the arguments substituted'
+    'list-skills:list the names of the available skills'
+    'skill:print the SKILL.md of a skill'
+    'list-models:list the enabled models'
+    'list-thinking:list the available thinking levels'
+    'session-pid:list the PIDs of pi processes in a directory'
+  )
+
+  if (( CURRENT == 2 )); then
+    _describe 'subcommand' subcommands
+    return
+  fi
+
+  case "$words[2]" in
+    uninstall)
+      local -a pkgs
+      pkgs=(${(f)"$(jq --raw-output '.packages[]?' ~/.pi/agent/settings.json 2>/dev/null)"})
+      _values -w 'package' "${pkgs[@]}"
+      ;;
+    list-prompts|list-skills)
+      (( CURRENT == 3 )) && _values 'option' '--paths[print file paths]'
+      ;;
+    prompt)
+      if (( CURRENT == 3 )); then
+        local -a prompts
+        prompts=(${(f)"$(_pi_utils_cached prompt)"})
+        _values 'prompt' "${prompts[@]}"
+      fi
+      ;;
+    skill)
+      if (( CURRENT == 3 )); then
+        local -a skills
+        skills=(${(f)"$(_pi_utils_cached skill)"})
+        _values 'skill' "${skills[@]}"
+      fi
+      ;;
+    list-models)
+      (( CURRENT == 3 )) && _values 'option' '--all[list all available models]'
+      ;;
+    session-pid)
+      (( CURRENT == 3 )) && _directories
+      ;;
+  esac
+}
+
+_pi-utils "$@"

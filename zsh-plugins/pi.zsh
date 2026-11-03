@@ -1,239 +1,15 @@
-PACKAGE_ROOT=$(realpath "${0:a:h}/..")
-CONFIG_PATH="$PACKAGE_ROOT/config/pi/settings.json"
-USER_CONFIG_PATH="$HOME/.pi/agent/settings.json"
-
-pi-install() {
-  local pkgs=("$@")
-  # If no packages specified, install all packages from preset configuration
-  if [[ ${#pkgs[@]} -eq 0 ]]; then
-    local packages=($(jq -r '.packages[]' "$CONFIG_PATH"))
-  else
-    local packages=("${pkgs[@]}")
-  fi
-
-  # Update provided pi agent settings.json path to add provided packages
-  # The resulting packages list is deduplicated and alphabetically sorted
-  # Usage: _pi_settings_add_packages <settings_path> <pkg1> <pkg2> ...
-  _pi_settings_add_packages() {
-    local settings_path="$1"
-    shift
-    echo "Adding $# package(s) to $settings_path…" >&2
-    local pkgs_json=$(printf '%s\n' "$@" | jq -R . | jq -s .)
-    local backup=$(mktemp)
-    cp "$settings_path" "$backup"
-    trap "cat '$backup' > '$settings_path' && rm -f '$backup' || echo \"$backup\"" ERR
-    jq --argjson pkgs "$pkgs_json" '.packages = (.packages + $pkgs | unique | sort)' "$backup" | perl -pe 'chomp if eof' > "$settings_path" && (rm -f "$backup" || echo "$backup")
-    trap - ERR
-  }
-
-  mise use --global "${packages[@]}" && mise-link-global-npm-packages "${packages[@]}" && {
-    # Update user settings and (optionally) configuration presets to reflect the added packages
-    local config_paths=()
-    config_paths+=("$USER_CONFIG_PATH")
-    [[ ${#pkgs[@]} -gt 0 ]] && config_paths+=("$CONFIG_PATH")
-    for config_path in "${config_paths[@]}"; do
-      _pi_settings_add_packages "$config_path" "${packages[@]}"
-    done
-  }
-}
-
-pi-uninstall() {
-  local pkgs=("$@")
-  # If no packages specified, exit with error
-  if [[ ${#pkgs[@]} -eq 0 ]]; then
-    echo "Error: No packages specified" >&2
-    return 1
-  fi
-
-  # Update provided pi agent settings.json path to remove provided packages
-  # The resulting packages list is deduplicated and alphabetically sorted
-  # Usage: _pi_settings_remove_packages <settings_path> <pkg1> <pkg2> ...
-  _pi_settings_remove_packages() {
-    local settings_path="$1"
-    shift
-    echo "Removing $# package(s) from $settings_path…" >&2
-    local pkgs_json=$(printf '%s\n' "$@" | jq -R . | jq -s .)
-    local backup=$(mktemp)
-    cp "$settings_path" "$backup"
-    trap "cat '$backup' > '$settings_path' && rm -f '$backup' || echo \"$backup\"" ERR
-    jq --argjson pkgs "$pkgs_json" '.packages = (.packages | map(select(. as $p | $pkgs | index($p) | not)))' "$backup" | perl -pe 'chomp if eof' > "$settings_path" && (rm -f "$backup" || echo "$backup")
-    trap - ERR
-  }
-
-  mise unuse --global "${pkgs[@]}" && mise-unlink-global-npm-packages "${pkgs[@]}" && {
-    # Update user settings and configuration presets to reflect the removed packages
-    local config_paths=()
-    config_paths+=("$USER_CONFIG_PATH")
-    config_paths+=("$CONFIG_PATH")
-    for config_path in "${config_paths[@]}"; do
-      _pi_settings_remove_packages "$config_path" "${pkgs[@]}"
-    done
-  }
-}
-
-pi-list-extension-paths() {
-  command pi list 2>/dev/null | grep -E '^    /' | sed 's/^    //'
-}
-
-pi-list-prompt-paths() {
-  for prompt in ".pi/agent/prompts"/*.md(N) "$HOME/.pi/agent/prompts"/*.md(N); do
-    echo "$prompt"
-  done
-  local extension_paths="${PI_EXTENSION_PATHS:-$(pi-list-extension-paths)}"
-  while IFS= read -r extension; do
-    while IFS= read -r prompts_dir; do
-      realpath "${extension}/${prompts_dir}"/*.md
-    done < <(jq --raw-output 'select(.pi.prompts) | .pi.prompts[]' < "$extension"/package.json)
-  done <<< "$extension_paths"
-}
-
-pi-prompt() {
-  # If no arguments are provided, list all available prompts
-  if [[ $# -eq 0 ]]; then
-    pi-list-prompt-paths | while IFS= read -r prompt_path; do
-      echo "/${prompt_path:t:r}"
-    done
-    return 0
-  fi
-
-  local query="$1"
-  shift
-  local args=("$@")
-
-  if [[ "$query" != /* ]]; then
-    echo "Error: prompt name must start with /" >&2
-    return 1
-  fi
-
-  local name="${query#/}"
-  local prompt_path
-  # List all local prompts
-  # Find all prompt paths across all extensions
-  # Locate the first prompt path whose filename (without extension) matches the provided slash command
-  prompt_path=$(pi-list-prompt-paths | while IFS= read -r prompt_path; do
-    if [[ "${prompt_path:t:r}" == "$name" ]]; then
-      echo "$prompt_path"
-      break
-    fi
-  done)
-
-  if [[ -z "$prompt_path" ]]; then
-    echo "Error: no prompt found matching '$name'" >&2
-    return 1
-  fi
-
-  # Returns a sed substitution pattern for a given variable name and replacement value,
-  # with special characters in the replacement correctly escaped.
-  # Usage: _pi_env_substitution_pattern <var_name> <replacement>
-  _pi_env_substitution_pattern() {
-    local var_name="$1"
-      # escape backslashes first
-    local replacement="${2//\\/\\\\}"
-    # escape forward slashes
-    replacement="${replacement//\//\\/}"
-    # escape ampersands
-    replacement="${replacement//&/\\&}"
-    # return the escaped substitution pattern
-    echo "s/\\\$$var_name/$replacement/g"
-  }
-
-  # Substitute placeholders in the prompt template with the provided args
-  # Supported placeholders:
-  # - $1, $2, ... $N for positional arguments
-  # - $@ or $ARGUMENTS for all arguments
-  local arg_substitutions=()
-  arg_substitutions+=(-e "$(_pi_env_substitution_pattern '@' "${(j: :)args}")")
-  arg_substitutions+=(-e "$(_pi_env_substitution_pattern 'ARGUMENTS' "${(j: :)args}")")
-  # Iterate in reverse to avoid conflicts when substituting multi-digit positional arguments
-  for i in {${#args}..1}; do
-    arg_substitutions+=(-e "$(_pi_env_substitution_pattern "$i" "${args[$i]}")")
-  done
-  sed "${arg_substitutions[@]}" < "$prompt_path"
-}
-
-pi-list-skill-paths() {
-  for skill in ".pi/agent/skills"/*/SKILL.md(N) "$HOME/.pi/agent/skills"/*/SKILL.md(N); do
-    echo "$skill"
-  done
-  local extension_paths="${PI_EXTENSION_PATHS:-$(pi-list-extension-paths)}"
-  local resolved_dir
-  while IFS= read -r extension; do
-    while IFS= read -r skill_dir; do
-      resolved_dir=$(realpath "${extension}/${skill_dir}" 2>/dev/null) || continue
-      for skill in "$resolved_dir"/*/SKILL.md(N); do
-        echo "$skill"
-      done
-    done < <(jq --raw-output '.pi.skills // ["./skills"] | .[]' < "$extension"/package.json)
-  done <<< "$extension_paths"
-}
-
-pi-list-skills() {
-  local frontmatter
-  local skill_name
-  pi-list-skill-paths | while IFS= read -r skill_path; do
-    # Extract the name: frontmatter from the skill markdown file
-    frontmatter=$(awk '/^---$/ {i++; next} i==1 {print} i==2 {exit}' "$skill_path" 2>/dev/null) || continue
-    if [[ -z "$frontmatter" ]]; then
-      continue
-    fi
-    skill_name=$(echo "$frontmatter" | awk -F': ' '/^name:/ {print $2}' 2>/dev/null) || continue
-    if [[ -n "$skill_name" ]]; then
-      echo "$skill_name"
-    fi
-  done
-}
-
-pi-skill() {
-  # If no arguments are provided, list all available skills
-  if [[ $# -eq 0 ]]; then
-    pi-list-skill-paths | while IFS= read -r skill_path; do
-      echo "${skill_path:h:t}"
-    done
-    return 0
-  fi
-
-  local name="$1"
-
-  if [[ -z "$name" ]]; then
-    echo "Error: skill name required" >&2
-    return 1
-  fi
-
-  local skill_path
-  # List all local skills
-  # Find all skill paths across all extensions
-  # Locate the first skill path whose parent directory name matches the provided name
-  skill_path=$(pi-list-skill-paths | while IFS= read -r skill_path; do
-    if [[ "${skill_path:h:t}" == "$name" ]]; then
-      echo "$skill_path"
-      break
-    fi
-  done)
-
-  if [[ -z "$skill_path" ]]; then
-    echo "Error: no skill found matching '$name'" >&2
-    return 1
-  fi
-
-  cat "$skill_path"
-}
-
-pi-list-models() {
-  if [[ "$1" == "--all" ]]; then
-    command pi --list-models | tail -n +2 | awk '{print $1"/"$2}'
-    return
-  fi
-  jq --raw-output '.enabledModels.[]' ~/.pi/agent/settings.json
-}
-
-pi-list-thinking() {
-  echo "off"
-  echo "minimal"
-  echo "low"
-  echo "medium"
-  echo "high"
-  echo "xhigh"
-}
+# Aliases for the pi-utils subcommands
+alias pi-install='pi-utils install'
+alias pi-uninstall='pi-utils uninstall'
+alias pi-list-extension-paths='pi-utils list-extensions'
+alias pi-list-prompt-paths='pi-utils list-prompts --paths'
+alias pi-prompt='pi-utils prompt'
+alias pi-list-skill-paths='pi-utils list-skills --paths'
+alias pi-list-skills='pi-utils list-skills'
+alias pi-skill='pi-utils skill'
+alias pi-list-models='pi-utils list-models'
+alias pi-list-thinking='pi-utils list-thinking'
+alias pi-session-pid='pi-utils session-pid'
 
 # Wrapper function for the `pi` command that provides user-selected model and thinking level for interactive chat sessions
 pi() {
@@ -284,41 +60,17 @@ pi() {
   local -a selected_args=()
   if (( ! bypass_model_selection )); then
     local model
-    model=$(pi-list-models | fzf --header "Choose a model") || return
+    model=$(pi-utils list-models | fzf --header "Choose a model") || return
     [[ -z "$model" ]] && return 130
     selected_args+=(--model "$model")
   fi
   if (( ! bypass_thinking_selection )); then
     local thinking
-    thinking=$(pi-list-thinking | fzf --header "Thinking level") || return
+    thinking=$(pi-utils list-thinking | fzf --header "Thinking level") || return
     [[ -z "$thinking" ]] && return 130
     selected_args+=(--thinking "$thinking")
   fi
 
   # Execute the `pi` command with the selected model and thinking level, relaying any other arguments
   "${sandbox_prefix[@]}" command pi "${selected_args[@]}" "$@"
-}
-
-# Lists the PIDs of any active `pi` processes whose working directory is the given
-# path (defaults to the current directory). Exits non-zero if none are found.
-pi-session-pid() {
-  local dir
-  dir=$(realpath "${1:-$PWD}") || return 1
-  if [[ ! -d "$dir" ]]; then
-    echo "Error: not a directory: ${1:-$PWD}" >&2
-    return 1
-  fi
-
-  # Collect the PIDs of all processes whose working directory is the specified directory
-  local -a candidates
-  candidates=(${(f)"$(lsof -a -d cwd -F p -- "$dir" 2>/dev/null | sed -n 's/^p//p')"})
-  (( ${#candidates} )) || return 1
-
-  # Retain only those processes invoked as `pi`
-  # (lsof reports the underlying `node` executable, so it can't filter these itself)
-  local -a pids
-  pids=(${(f)"$(ps -o pid= -o comm= -p ${(j:,:)candidates} | awk '$2 ~ /(^|\/)pi$/ { print $1 }')"})
-
-  (( ${#pids} )) || return 1
-  printf '%s\n' "${pids[@]}"
 }

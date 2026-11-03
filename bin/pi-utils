@@ -1,0 +1,392 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOTFILES_PATH="$(realpath "$(dirname "$(realpath "$0")")/..")"
+PRESET_SETTINGS_PATH="$DOTFILES_PATH/config/pi/settings.json"
+USER_SETTINGS_PATH="$HOME/.pi/agent/settings.json"
+
+usage() {
+  local command_name
+  command_name="$(basename "$0")"
+  cat <<EOF
+Usage: $command_name <subcommand> [arguments...]
+
+Helpers for the pi coding agent.
+
+Subcommands:
+  install [<pkg>...]           Install pi packages with mise and register them in the pi settings.
+                               Without arguments, installs all packages from the preset settings.
+                               With arguments, also adds the packages to the preset settings.
+  uninstall <pkg>...           Uninstall pi packages and remove them from the user and preset settings
+  list-extensions              List the installation paths of the installed pi packages
+  list-prompts [--paths]       List the available prompt templates as /<name> (or as file paths)
+  prompt [/<name> [<arg>...]]  Print a prompt template with the arguments substituted
+                               Without arguments, lists the available prompt templates.
+  list-skills [--paths]        List the names of the available skills (or their SKILL.md paths)
+  skill [<name>]               Print the SKILL.md of the skill in the named directory
+                               Without arguments, lists the available skill directory names.
+  list-models [--all]          List the enabled models (or all available models)
+  list-thinking                List the available thinking levels
+  session-pid [<dir>]          List the PIDs of pi processes whose working directory is <dir>
+                               (default: the current directory). Exits with status 1 if none are found.
+
+Package names use the mise tool format (e.g. npm:pi-goal-x).
+
+Prompt templates support these placeholders:
+  \$1, \$2, ... \$N    Positional arguments
+  \$@, \$ARGUMENTS     All arguments, joined with spaces
+
+Environment variables:
+  PI_EXTENSION_PATHS    Newline-separated pi package paths. Overrides the output of "pi list",
+                        which is slow, for example when a shell completion caches the paths.
+
+Options:
+  -h, --help            Show this help message and exit
+EOF
+}
+
+log() {
+  echo "$*" >&2
+}
+
+# Print a JSON array that contains the given strings
+json_string_array() {
+  printf '%s\n' "$@" | jq --raw-input . | jq --slurp .
+}
+
+# Apply a jq filter to a pi settings file, treating a missing file as an empty object
+# The filter receives the given packages as the $pkgs variable
+# Usage: update_settings_packages <settings_path> <jq_filter> <pkg>...
+update_settings_packages() {
+  local settings_path="$1"
+  local filter="$2"
+  shift 2
+  log "Updating $# package(s) in ${settings_path}..."
+  local pkgs_json current_json updated_json
+  pkgs_json="$(json_string_array "$@")"
+  current_json='{}'
+  if [[ -e "$settings_path" ]]; then
+    current_json="$(cat "$settings_path")"
+  fi
+  updated_json="$(jq --argjson pkgs "$pkgs_json" "$filter" <<<"$current_json")"
+  mkdir -p "$(dirname "$settings_path")"
+  printf '%s\n' "$updated_json" >"$settings_path"
+}
+
+cmd_install() {
+  local packages=("$@")
+  local update_preset=true
+  if [[ ${#packages[@]} -eq 0 ]]; then
+    update_preset=false
+    local pkg
+    while IFS= read -r pkg; do
+      packages+=("$pkg")
+    done < <(jq --raw-output '.packages[]' "$PRESET_SETTINGS_PATH")
+  fi
+  mise use --global "${packages[@]}"
+  mise-utils link-npm-packages "${packages[@]}"
+  # shellcheck disable=SC2016
+  local filter='.packages = ((.packages // []) + $pkgs | unique | sort)'
+  update_settings_packages "$USER_SETTINGS_PATH" "$filter" "${packages[@]}"
+  if [[ "$update_preset" == true ]]; then
+    update_settings_packages "$PRESET_SETTINGS_PATH" "$filter" "${packages[@]}"
+  fi
+}
+
+cmd_uninstall() {
+  mise unuse --global "$@"
+  mise-utils unlink-npm-packages "$@"
+  # shellcheck disable=SC2016
+  local filter='.packages = ((.packages // []) | map(select(. as $p | $pkgs | index($p) | not)))'
+  update_settings_packages "$USER_SETTINGS_PATH" "$filter" "$@"
+  update_settings_packages "$PRESET_SETTINGS_PATH" "$filter" "$@"
+}
+
+cmd_list_extensions() {
+  if [[ -n "${PI_EXTENSION_PATHS:-}" ]]; then
+    printf '%s\n' "$PI_EXTENSION_PATHS"
+    return
+  fi
+  # "pi list" prints each package path indented by four spaces below the package name
+  { pi list 2>/dev/null || true; } | sed -n 's/^    \(\/.*\)$/\1/p'
+}
+
+# Print the files that match a glob pattern, one per line, skipping the pattern itself if nothing matches
+print_existing() {
+  local file
+  for file in "$@"; do
+    [[ -e "$file" || -L "$file" ]] && echo "$file"
+  done
+  return 0
+}
+
+# Run a jq filter against the package.json of each pi package, printing one result per line
+# Each result is prefixed with the package path and a tab character
+# Usage: extension_package_json_values <jq_filter>
+extension_package_json_values() {
+  local filter="$1"
+  local extension value
+  while IFS= read -r extension; do
+    [[ -n "$extension" && -f "$extension/package.json" ]] || continue
+    while IFS= read -r value; do
+      printf '%s\t%s\n' "$extension" "$value"
+    done < <(jq --raw-output "$filter" <"$extension/package.json")
+  done < <(cmd_list_extensions)
+}
+
+list_prompt_paths() {
+  print_existing .pi/agent/prompts/*.md "$HOME"/.pi/agent/prompts/*.md
+  local extension prompts_dir
+  while IFS=$'\t' read -r extension prompts_dir; do
+    for prompt in "$extension/$prompts_dir"/*.md; do
+      [[ -e "$prompt" ]] && realpath "$prompt"
+    done
+  done < <(extension_package_json_values 'select(.pi.prompts) | .pi.prompts[]')
+  return 0
+}
+
+list_skill_paths() {
+  print_existing .pi/agent/skills/*/SKILL.md "$HOME"/.pi/agent/skills/*/SKILL.md
+  local extension skills_dir resolved_dir
+  while IFS=$'\t' read -r extension skills_dir; do
+    resolved_dir="$(realpath "$extension/$skills_dir" 2>/dev/null)" || continue
+    print_existing "$resolved_dir"/*/SKILL.md
+  done < <(extension_package_json_values '.pi.skills // ["./skills"] | .[]')
+  return 0
+}
+
+# Print the file name of a path without its directory and extension
+path_stem() {
+  local name="${1##*/}"
+  echo "${name%.*}"
+}
+
+# Print the name of the directory that contains a path
+parent_dir_name() {
+  local dir="${1%/*}"
+  echo "${dir##*/}"
+}
+
+cmd_list_prompts() {
+  local paths="$1"
+  local prompt_path
+  while IFS= read -r prompt_path; do
+    if [[ "$paths" == true ]]; then
+      echo "$prompt_path"
+    else
+      echo "/$(path_stem "$prompt_path")"
+    fi
+  done < <(list_prompt_paths)
+}
+
+cmd_list_skills() {
+  local paths="$1"
+  local skill_path frontmatter skill_name
+  while IFS= read -r skill_path; do
+    if [[ "$paths" == true ]]; then
+      echo "$skill_path"
+      continue
+    fi
+    frontmatter="$(awk '/^---$/ {i++; next} i==1 {print} i==2 {exit}' "$skill_path" 2>/dev/null)" || continue
+    [[ -n "$frontmatter" ]] || continue
+    skill_name="$(awk -F': ' '/^name:/ {print $2}' <<<"$frontmatter")"
+    [[ -n "$skill_name" ]] && echo "$skill_name"
+  done < <(list_skill_paths)
+  return 0
+}
+
+# Print a sed substitution expression that replaces the placeholder $<name> with a literal value
+# Usage: placeholder_substitution <name> <value>
+placeholder_substitution() {
+  local name="$1"
+  local value="$2"
+  value="${value//\\/\\\\}"
+  value="${value//\//\\/}"
+  value="${value//&/\\&}"
+  echo "s/\\\$$name/$value/g"
+}
+
+cmd_prompt() {
+  if [[ $# -eq 0 ]]; then
+    cmd_list_prompts false
+    return
+  fi
+  local query="$1"
+  shift
+  if [[ "$query" != /* ]]; then
+    log "Error: prompt name must start with /"
+    return 1
+  fi
+  local name="${query#/}"
+  local prompt_path="" candidate
+  while IFS= read -r candidate; do
+    if [[ "$(path_stem "$candidate")" == "$name" ]]; then
+      prompt_path="$candidate"
+      break
+    fi
+  done < <(list_prompt_paths)
+  if [[ -z "$prompt_path" ]]; then
+    log "Error: no prompt found matching '$name'"
+    return 1
+  fi
+  local all_args="$*"
+  local expressions=()
+  expressions+=(-e "$(placeholder_substitution '@' "$all_args")")
+  expressions+=(-e "$(placeholder_substitution 'ARGUMENTS' "$all_args")")
+  # Substitute in reverse order so that $1 does not match the prefix of $10
+  local args=("$@")
+  local index
+  for (( index = ${#args[@]}; index >= 1; index-- )); do
+    expressions+=(-e "$(placeholder_substitution "$index" "${args[index - 1]}")")
+  done
+  sed "${expressions[@]}" <"$prompt_path"
+}
+
+cmd_skill() {
+  local skill_path
+  if [[ $# -eq 0 ]]; then
+    while IFS= read -r skill_path; do
+      parent_dir_name "$skill_path"
+    done < <(list_skill_paths)
+    return
+  fi
+  local name="$1"
+  while IFS= read -r skill_path; do
+    if [[ "$(parent_dir_name "$skill_path")" == "$name" ]]; then
+      cat "$skill_path"
+      return
+    fi
+  done < <(list_skill_paths)
+  log "Error: no skill found matching '$name'"
+  return 1
+}
+
+cmd_list_models() {
+  local all="$1"
+  if [[ "$all" == true ]]; then
+    pi --list-models | tail -n +2 | awk '{print $1"/"$2}'
+  else
+    jq --raw-output '.enabledModels[]' "$USER_SETTINGS_PATH"
+  fi
+}
+
+cmd_list_thinking() {
+  printf '%s\n' off minimal low medium high xhigh
+}
+
+cmd_session_pid() {
+  local target="${1:-$PWD}"
+  local dir
+  dir="$(realpath "$target")" || return 1
+  if [[ ! -d "$dir" ]]; then
+    log "Error: not a directory: $target"
+    return 1
+  fi
+  # Collect the PIDs of all processes whose working directory is the specified directory
+  local candidates
+  candidates="$(lsof -a -d cwd -F p -- "$dir" 2>/dev/null | sed -n 's/^p//p' | paste -sd , -)" || true
+  [[ -n "$candidates" ]] || return 1
+  # Retain only those processes invoked as "pi"
+  # (lsof reports the underlying node executable, so it cannot filter these itself)
+  local pids
+  pids="$(ps -o pid= -o comm= -p "$candidates" | awk '$2 ~ /(^|\/)pi$/ { print $1 }')"
+  [[ -n "$pids" ]] || return 1
+  echo "$pids"
+}
+
+# Exit with a usage error if the arguments contain a flag that is not in the allowed list
+# Usage: reject_unknown_flags "<allowed flags...>" <args>...
+reject_unknown_flags() {
+  local allowed="$1"
+  shift
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      -h|--help) usage; exit 0 ;;
+      -*)
+        if [[ " $allowed " != *" $arg "* ]]; then
+          log "Unknown option: $arg"
+          usage >&2
+          exit 1
+        fi
+        ;;
+    esac
+  done
+}
+
+# Exit with a usage error unless the argument count lies within the given bounds
+# Usage: require_arg_count <min> <max> <args>...
+require_arg_count() {
+  local min="$1" max="$2"
+  shift 2
+  if [[ $# -lt "$min" || $# -gt "$max" ]]; then
+    usage >&2
+    exit 1
+  fi
+}
+
+# Parse command-line arguments
+if [[ $# -eq 0 ]]; then
+  usage >&2
+  exit 1
+fi
+subcommand="$1"
+shift
+case "$subcommand" in
+  -h|--help) usage; exit 0 ;;
+  install)
+    reject_unknown_flags "" "$@"
+    cmd_install "$@"
+    ;;
+  uninstall)
+    reject_unknown_flags "" "$@"
+    require_arg_count 1 1000 "$@"
+    cmd_uninstall "$@"
+    ;;
+  list-extensions)
+    reject_unknown_flags "" "$@"
+    require_arg_count 0 0 "$@"
+    cmd_list_extensions
+    ;;
+  list-prompts|list-skills)
+    reject_unknown_flags "--paths" "$@"
+    require_arg_count 0 1 "$@"
+    paths=false
+    [[ $# -eq 1 ]] && paths=true
+    if [[ "$subcommand" == list-prompts ]]; then
+      cmd_list_prompts "$paths"
+    else
+      cmd_list_skills "$paths"
+    fi
+    ;;
+  prompt)
+    cmd_prompt "$@"
+    ;;
+  skill)
+    reject_unknown_flags "" "$@"
+    require_arg_count 0 1 "$@"
+    cmd_skill "$@"
+    ;;
+  list-models)
+    reject_unknown_flags "--all" "$@"
+    require_arg_count 0 1 "$@"
+    all=false
+    [[ $# -eq 1 ]] && all=true
+    cmd_list_models "$all"
+    ;;
+  list-thinking)
+    reject_unknown_flags "" "$@"
+    require_arg_count 0 0 "$@"
+    cmd_list_thinking
+    ;;
+  session-pid)
+    reject_unknown_flags "" "$@"
+    require_arg_count 0 1 "$@"
+    cmd_session_pid "$@"
+    ;;
+  *)
+    log "Unknown subcommand: $subcommand"
+    usage >&2
+    exit 1
+    ;;
+esac
