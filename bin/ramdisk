@@ -12,6 +12,14 @@ DEFAULT_SIZE=$(( 512 * 1024 * 1024 ))
 
 log() { printf '%s\n' "$*" >&2; }
 
+# Exit with an error if the current operating system is not macOS
+require_macos() {
+  if [[ "$OSTYPE" != darwin* ]]; then
+    log "Error: ${0##*/} requires macOS (hdiutil and diskutil are not available on $OSTYPE)."
+    exit 1
+  fi
+}
+
 usage() {
   cat <<EOF
 Usage: ${0##*/} <subcommand> [options]
@@ -49,6 +57,8 @@ cmd_create() {
     esac
   done
 
+  require_macos
+
   # hdiutil uses 512-byte sectors
   local sectors=$(( size / 512 ))
 
@@ -80,6 +90,8 @@ cmd_destroy() {
 
   [[ -n "$mountpoint" ]] || { log "Error: destroy requires a mountpoint argument."; usage >&2; exit 1; }
 
+  require_macos
+
   hdiutil detach "$mountpoint" >/dev/null 2>&1
   log "Destroyed RAM disk: $mountpoint"
 }
@@ -91,6 +103,8 @@ cmd_list() {
       *) log "Error: Unknown argument: $1"; usage >&2; exit 1 ;;
     esac
   done
+
+  require_macos
 
   local found=0
 
