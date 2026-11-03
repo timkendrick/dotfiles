@@ -49,7 +49,7 @@ watchexec = "latest"
 "cargo:nail-parquet" = "latest"
 "cargo:toml2json" = "latest"
 "github:backnotprop/plannotator" = "latest"
-"github:docker/buildx" = "latest"
+"github:docker/buildx" = { version = "latest", bin = "docker-buildx" }
 "github:docker/compose" = "latest"
 "github:microsoft/go-sqlcmd" = "latest"
 "go:github.com/dolmen-go/docker-list-context" = "latest"
