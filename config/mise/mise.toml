@@ -25,6 +25,7 @@ lazygit = "latest"
 mr-boxington = { version = "latest", workflow = "release.yml@refs/heads/main" }
 neovim = "latest"
 node = "24"
+pandoc = "latest"
 pipx = "latest"
 python = "3.12"
 ripgrep = "latest"
