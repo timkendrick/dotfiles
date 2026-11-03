@@ -34,6 +34,23 @@ export DOTFILES_PATH="$PACKAGE_ROOT"
 # Add bin directory to PATH
 export PATH="$BIN_PATH:$PATH"
 
+# Name of the current operating system (e.g. "darwin", "linux")
+DOTFILES_OS="${OSTYPE%%[0-9-]*}"
+
+# Helper: determine whether a file applies to the current operating system
+# A file named <name>.<os>.<ext> (e.g. brew.darwin.zsh) only applies to the named operating system.
+# All other files apply to every operating system.
+is_current_os_file() {
+    local file="$1"
+    local stem="${${file:t}%.*}"
+    [[ "$stem" == *.* ]] || return 0
+    local file_os="${stem##*.}"
+    case "$file_os" in
+        darwin|linux) [[ "$file_os" == "$DOTFILES_OS" ]] ;;
+        *) return 0 ;;
+    esac
+}
+
 # Helper: source a .zsh file, logging to stderr if DOTFILES_DEBUG is set
 load_module() {
     local file="$1"
@@ -97,12 +114,14 @@ load_fpath() {
 
 # Initialize zsh shell environment variables
 for config in "$ZSH_ENV_PATH"/*.env(ND); do
+    is_current_os_file "$config" || continue
     [[ -f "$config" ]] && load_env "$config"
 done
 
 # Enable custom zsh completions, followed by additional completion directories
 typeset -a _fpath_dirs=()
 for config in "$ZSH_FPATH_PATH"/*.fpath(ND); do
+    is_current_os_file "$config" || continue
     load_fpath "$config"
 done
 fpath=("$ZSH_COMPLETIONS_PATH" "${_fpath_dirs[@]}" "${fpath[@]}")
@@ -119,6 +138,7 @@ fi
 
 # Load shell plugins
 for plugin in "$ZSH_PLUGINS_PATH"/*.zsh(ND); do
+    is_current_os_file "$plugin" || continue
     load_module "$plugin"
 done
 
@@ -130,14 +150,15 @@ _PROMPT_MODIFIER_FNS=()
 local -a _prompt_plugin_paths=()
 local _prompt_file
 for _prompt_file in "$ZSH_PROMPTS_PATH"/*.zsh(ND); do
+    is_current_os_file "$_prompt_file" || continue
     _prompt_plugin_paths+=("${${_prompt_file:t}#.}"$'\1'"$_prompt_file")
 done
 local _prompt_plugin
 for _prompt_plugin in "${(@o)_prompt_plugin_paths}"; do
     local prompt_plugin="${_prompt_plugin#*$'\1'}"
     load_module "$prompt_plugin"
-    # Derive function name: .04-aws-session.zsh -> _prompt_aws_session
-    local _fn_name="${${_prompt_plugin%%$'\1'*}%.zsh}"
+    # Derive function name: .04-aws-session.darwin.zsh -> _prompt_aws_session
+    local _fn_name="${${${_prompt_plugin%%$'\1'*}%.zsh}%.${DOTFILES_OS}}"
     _fn_name="${_fn_name#*([0-9])-}"  # strip ordinal prefix (e.g. 00-)
     _fn_name="${_fn_name//-/_}"       # convert hyphens to underscores
     _fn_name="_prompt_${_fn_name}"
@@ -160,6 +181,7 @@ add-zsh-hook precmd _hook_precmd_prompt
 
 # Enable custom syntax highlighting
 for plugin in "$ZSH_SYNTAX_HIGHLIGHTING_PATH"/*.zsh(ND); do
+    is_current_os_file "$plugin" || continue
     load_module "$plugin"
 done
 
