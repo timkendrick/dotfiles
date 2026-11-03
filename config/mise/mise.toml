@@ -6,6 +6,7 @@ bat = "latest"
 biome = "latest"
 bun = "latest"
 claude-code = "latest"
+cloc = { version = "latest", bin = "cloc", platforms = { linux-arm64 = { asset_pattern = "cloc-{{ version }}.pl" }, linux-x64 = { asset_pattern = "cloc-{{ version }}.pl" }, macos-arm64 = { asset_pattern = "cloc-{{ version }}.pl" }, macos-x64 = { asset_pattern = "cloc-{{ version }}.pl" }, windows-x64 = { asset_pattern = "cloc-{{ version }}.exe" } } }
 dotnet = "latest"
 duckdb = "latest"
 fd = "latest"
