@@ -1,0 +1,527 @@
+#!/usr/bin/env bash
+set -euo pipefail
+shopt -s dotglob nullglob
+
+SCRIPT_NAME="$(basename "$0")"
+DOTFILES_PATH="$(realpath "$(dirname "$(realpath "$0")")/..")"
+PLUGINS_PATH="$DOTFILES_PATH/scripts/install.d"
+CURRENT_OS="${OSTYPE%%[0-9-]*}"
+EXIT_FORCE_REQUIRED=2
+# Separates the fields of a plugin file record (the ASCII unit separator)
+RECORD_SEPARATOR=$'\x1f'
+
+usage() {
+  cat <<EOF
+Usage: $SCRIPT_NAME [--packages] [--config] [--plugin <name>]... [--force] [--dry-run]
+       $SCRIPT_NAME list
+
+Install the dotfiles for the current user. Each action is safe to run again.
+
+Commands:
+  list                    Print the names of all plugins
+
+Options:
+  --packages              Run the packages files of the plugins
+  --config                Run the config files of the plugins
+  --plugin <name>, --plugin=<name>
+                          Run only the named plugin. Repeat the option to run more than one plugin.
+  --force                 Replace existing files and symlinks that conflict with the configuration
+  --dry-run               Print the actions without running them
+  -h, --help              Show this help message and exit
+
+If neither --packages nor --config is specified, both run. All packages files run before
+the config files. If no --plugin option is specified, all plugins run.
+
+Plugins:
+  A plugin is a set of files in $PLUGINS_PATH
+  named [.][NN-]<name>[.<os>].<kind>.sh:
+    - <kind> is env, packages or config
+    - A file with an <os> part (darwin or linux) only runs on that operating system
+    - Files run in filename order, ignoring a leading dot. An NN- prefix sets the order.
+    - Git ignores files that start with a dot, so they can hold machine-specific plugins
+  Env files set environment variables (e.g. PATH) for the other plugin files. All env
+  files run at startup, whatever the --plugin options. Each env file runs again after
+  each other file of its plugin.
+  If DOTFILES_PLUGIN_MOUNT_DIR is set, the plugin files in that directory also run.
+  They run in filename order together with the files in $PLUGINS_PATH.
+
+Available plugins:
+$(list_plugins_with_files | sed 's/^/  /')
+
+Set DOTFILES_DEBUG to print debug messages to stderr.
+
+Exit status:
+  0  All actions succeeded
+  1  An action failed
+  2  Some actions require --force; all other actions succeeded
+EOF
+}
+
+log() {
+  echo "$*" >&2
+}
+
+# Log a message only if DOTFILES_DEBUG is set
+debug() {
+  if [[ -n "${DOTFILES_DEBUG:-}" ]]; then
+    log "[$SCRIPT_NAME] $*"
+  fi
+}
+
+# Return 0 if --dry-run was specified
+is_dry_run() {
+  [[ "$dry_run" == true ]]
+}
+
+# Run a command, printing it first
+# In dry-run mode, only print the command
+run() {
+  log "+ $*"
+  if [[ "$dry_run" == false ]]; then
+    "$@"
+  fi
+}
+
+# Print a path with the home directory prefix replaced by the given placeholder (e.g. '$HOME' or '~')
+home_relative_path() {
+  local path="$1"
+  local placeholder="$2"
+  if [[ "$path" == "$HOME"/* ]]; then
+    echo "$placeholder/${path#"$HOME"/}"
+  else
+    echo "$path"
+  fi
+}
+
+# Append a line to a file, unless the file already contains the exact line
+append_line() {
+  local file="$1"
+  local line="$2"
+  if [[ -f "$file" ]] && grep -qxF -- "$line" "$file"; then
+    log "Already present in $file: $line"
+    return
+  fi
+  if [[ ! -d "$(dirname "$file")" ]]; then
+    run mkdir -p "$(dirname "$file")"
+  fi
+  log "+ append to $file: $line"
+  if [[ "$dry_run" == false ]]; then
+    printf '%s\n' "$line" >>"$file"
+  fi
+}
+
+# Return 0 if --force was specified
+# Otherwise log a warning that describes the overridable action, mark the install as requiring --force, and return 1.
+allow_force() {
+  local description="$1"
+  if [[ "$force" == true ]]; then
+    return 0
+  fi
+  log "Warning: $description; re-run with --force to override"
+  force_required=true
+  return 1
+}
+
+# Create a symlink at the given path that points to the given target
+# Replacing an existing file, directory or symlink to another target requires --force.
+link_path() {
+  local target="$1"
+  local link="$2"
+  local existing_target
+  if [[ -L "$link" ]]; then
+    existing_target="$(readlink "$link")"
+    if [[ "$existing_target" == "$target" ]]; then
+      log "Already linked: $link -> $target"
+      return
+    fi
+    allow_force "$link links to $existing_target instead of $target" || return 0
+    run rm "$link"
+  elif [[ -e "$link" ]]; then
+    allow_force "$link exists and is not a symlink to $target" || return 0
+    run rm -rf "$link"
+  fi
+  if [[ ! -d "$(dirname "$link")" ]]; then
+    run mkdir -p "$(dirname "$link")"
+  fi
+  run ln -s "$target" "$link"
+}
+
+# Print the output basename for a path relative to a source directory
+# The first sed expression that changes the relative path gives the basename.
+# If no expression changes the path, the basename is unchanged.
+renamed_basename() {
+  local relative_path="$1"
+  shift
+  local expression renamed
+  for expression in "$@"; do
+    renamed="$(sed -e "$expression" <<<"$relative_path")"
+    if [[ "$renamed" != "$relative_path" ]]; then
+      echo "$renamed"
+      return
+    fi
+  done
+  basename "$relative_path"
+}
+
+# Link the entries of a source directory into a target directory, recursing into subdirectories
+# $1 = the root source directory, which rename expressions match against
+# $2 = the source directory
+# $3 = the target directory
+# $4 = the number of subdirectory levels to recurse into, or a negative number for no limit
+# $@ = rename expressions (after the first 4 arguments)
+link_config_tree() {
+  local root="$1"
+  local source_dir="$2"
+  local target_dir="$3"
+  local depth="$4"
+  shift 4
+  local entry name
+  for entry in "$source_dir"/*; do
+    name="$(renamed_basename "${entry#"$root/"}" "$@")"
+    if [[ -d "$entry" && ! -L "$entry" && "$depth" -ne 0 ]]; then
+      link_config_tree "$root" "$entry" "$target_dir/$name" "$((depth - 1))" "$@"
+    else
+      link_path "$(realpath "$entry")" "$target_dir/$name"
+    fi
+  done
+}
+
+# Link all files from a source directory into a target directory, preserving the directory structure
+# Usage: link_config_dir [--depth <n>] [--rename <expression>]... <source> <target>
+#   --depth <n>              Recurse into <n> levels of subdirectories, and link deeper directories directly.
+#                            0 links all immediate children of <source>. The default is no limit.
+#   --rename <expression>    sed expression that maps a path relative to <source> to the basename of the link.
+#                            Renames apply to files and directories. The first expression that changes the path wins.
+#                            Example: 's/^prompts$/commands/'
+link_config_dir() {
+  local depth=-1
+  local rename_expressions=()
+  local paths=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --depth)
+        if [[ ! "${2:-}" =~ ^[0-9]+$ ]]; then
+          log "Error: link_config_dir --depth requires a non-negative integer"
+          exit 1
+        fi
+        depth="$2"
+        shift 2
+        ;;
+      --rename)
+        if [[ -z "${2:-}" ]]; then
+          log "Error: link_config_dir --rename requires a sed expression"
+          exit 1
+        fi
+        rename_expressions+=("$2")
+        shift 2
+        ;;
+      *) paths+=("$1"); shift ;;
+    esac
+  done
+  if [[ ${#paths[@]} -ne 2 ]]; then
+    log "Error: link_config_dir requires a source and a target directory"
+    exit 1
+  fi
+  local source_dir="${paths[0]%/}"
+  link_config_tree "$source_dir" "$source_dir" "${paths[1]}" "$depth" ${rename_expressions[@]+"${rename_expressions[@]}"}
+}
+
+# Merge a JSON file from this repository into a JSON file in the home directory
+# A missing target file counts as an empty object.
+merge_json() {
+  local target="$1"
+  local source="$2"
+  local merged
+  if [[ -e "$target" ]]; then
+    merged="$(jq -s '.[0] * .[1]' "$target" "$source")"
+    if [[ "$merged" == "$(jq . "$target")" ]]; then
+      log "Already merged: $target"
+      return
+    fi
+  else
+    merged="$(jq '{} * .' "$source")"
+  fi
+  log "+ merge-json $target < $source"
+  debug "Merged JSON for $target:"$'\n'"$merged"
+  if [[ "$dry_run" == false ]]; then
+    if [[ ! -d "$(dirname "$target")" ]]; then
+      mkdir -p "$(dirname "$target")"
+    fi
+    printf '%s\n' "$merged" >"$target"
+  fi
+}
+
+
+# Print one record per plugin file in PLUGINS_PATH and DOTFILES_PLUGIN_MOUNT_DIR, unsorted
+# Each record holds the fields <sort key>, <name>, <kind>, <os> and <path>, separated by RECORD_SEPARATOR.
+# The sort key is the filename without a leading dot. <os> is empty for files that apply to every operating system.
+# Files that do not match [.][NN-]<name>[.<os>].<kind>.sh are ignored.
+print_plugin_file_records() {
+  local path filename stem kind os name
+  local paths=("$PLUGINS_PATH"/*.sh)
+  if [[ -n "${DOTFILES_PLUGIN_MOUNT_DIR:-}" ]]; then
+    paths+=("$DOTFILES_PLUGIN_MOUNT_DIR"/*.sh)
+  fi
+  for path in ${paths[@]+"${paths[@]}"}; do
+    filename="${path##*/}"
+    filename="${filename#.}"
+    case "$filename" in
+      *.env.sh) kind="env" ;;
+      *.packages.sh) kind="packages" ;;
+      *.config.sh) kind="config" ;;
+      *)
+        debug "Ignoring $path: the filename does not end in .env.sh, .packages.sh or .config.sh"
+        continue
+        ;;
+    esac
+    stem="${filename%".$kind.sh"}"
+    os=""
+    case "$stem" in
+      *.darwin|*.linux)
+        os="${stem##*.}"
+        stem="${stem%.*}"
+        ;;
+    esac
+    name="$stem"
+    if [[ "$name" =~ ^[0-9]+-(.+)$ ]]; then
+      name="${BASH_REMATCH[1]}"
+    fi
+    printf '%s\n' "$filename$RECORD_SEPARATOR$name$RECORD_SEPARATOR$kind$RECORD_SEPARATOR$os$RECORD_SEPARATOR$path"
+  done
+}
+
+# Read the plugin files into the plugin_file_* arrays, sorted by filename ignoring any leading dot
+# The arrays are parallel: index i of each array describes the same file.
+load_plugin_files() {
+  local name kind os path
+  plugin_file_names=()
+  plugin_file_kinds=()
+  plugin_file_oses=()
+  plugin_file_paths=()
+  while IFS="$RECORD_SEPARATOR" read -r _ name kind os path; do
+    plugin_file_names+=("$name")
+    plugin_file_kinds+=("$kind")
+    plugin_file_oses+=("$os")
+    plugin_file_paths+=("$path")
+  done < <(print_plugin_file_records | LC_ALL=C sort)
+}
+
+# Print the names of all plugins, one per line, sorted
+list_plugin_names() {
+  if [[ ${#plugin_file_names[@]} -gt 0 ]]; then
+    printf '%s\n' "${plugin_file_names[@]}" | LC_ALL=C sort -u
+  fi
+}
+
+# Print one line per plugin: the plugin name, followed by the filenames of its files
+list_plugins_with_files() {
+  local name index filenames
+  while IFS= read -r name; do
+    filenames=""
+    for ((index = 0; index < ${#plugin_file_paths[@]}; index++)); do
+      if [[ "${plugin_file_names[index]}" == "$name" ]]; then
+        filenames+="${filenames:+ }${plugin_file_paths[index]##*/}"
+      fi
+    done
+    printf '%-15s %s\n' "$name" "$filenames"
+  done < <(list_plugin_names)
+}
+
+# Return 0 if the first argument is equal to any of the other arguments
+contains() {
+  local needle="$1"
+  shift
+  local item
+  for item in "$@"; do
+    if [[ "$item" == "$needle" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Return 0 if the plugin file at the given index applies to the current operating system
+plugin_file_applies() {
+  local index="$1"
+  [[ -z "${plugin_file_oses[index]}" || "${plugin_file_oses[index]}" == "$CURRENT_OS" ]]
+}
+
+# Return 0 if the named plugin is selected: either it was given with --plugin, or no --plugin option was given
+is_plugin_selected() {
+  local name="$1"
+  [[ ${#selected_plugins[@]} -eq 0 ]] || contains "$name" "${selected_plugins[@]}"
+}
+
+# Source an env file in the current shell
+# The EXIT trap of the entrypoint reports a failure while the file runs.
+load_env_file() {
+  local path="$1"
+  debug "Loading ${path##*/}"
+  current_env_file="${path##*/}"
+  # shellcheck source=/dev/null
+  source "$path"
+  current_env_file=""
+}
+
+# Source the env files of the named plugin that apply to the current operating system
+load_plugin_env_files() {
+  local name="$1"
+  local index
+  for ((index = 0; index < ${#plugin_file_paths[@]}; index++)); do
+    if [[ "${plugin_file_names[index]}" == "$name" && "${plugin_file_kinds[index]}" == env ]] && plugin_file_applies "$index"; then
+      load_env_file "${plugin_file_paths[index]}"
+    fi
+  done
+}
+
+# Source the env files of the plugin that is running
+# Plugin files call this function after they install a tool that their env files add to the environment.
+load_plugin_env() {
+  load_plugin_env_files "$current_plugin_name"
+}
+
+# Report a failed env file, and exit with status 1
+on_entrypoint_exit() {
+  local status=$?
+  if [[ "$status" -ne 0 && -n "$current_env_file" ]]; then
+    log "[$SCRIPT_NAME] error: $current_env_file exited with status $status"
+    exit 1
+  fi
+}
+
+# Translate the exit status of a plugin file subshell
+# A failure exits with status 1. Success exits with EXIT_FORCE_REQUIRED if any action requires --force.
+on_plugin_exit() {
+  local status=$?
+  if [[ "$status" -ne 0 ]]; then
+    log "[$SCRIPT_NAME] error: $current_plugin_file exited with status $status"
+    exit 1
+  fi
+  if [[ "$force_required" == true ]]; then
+    exit "$EXIT_FORCE_REQUIRED"
+  fi
+}
+
+# Run a plugin file in a subshell, then source the env files of its plugin again
+# If the plugin file fails, exit with status 1.
+run_plugin_file() {
+  local name="$1"
+  local path="$2"
+  local status
+  debug "Running ${path##*/}"
+  set +e
+  (
+    set -e
+    current_plugin_name="$name"
+    current_plugin_file="${path##*/}"
+    force_required=false
+    trap on_plugin_exit EXIT
+    # shellcheck source=/dev/null
+    source "$path"
+  )
+  status=$?
+  set -e
+  case "$status" in
+    0) ;;
+    "$EXIT_FORCE_REQUIRED") force_required=true ;;
+    *) exit 1 ;;
+  esac
+  load_plugin_env_files "$name"
+}
+
+# Run the plugin files of the given kind (packages or config) for the selected plugins
+run_plugin_files() {
+  local kind="$1"
+  local index name
+  for ((index = 0; index < ${#plugin_file_paths[@]}; index++)); do
+    name="${plugin_file_names[index]}"
+    if [[ "${plugin_file_kinds[index]}" != "$kind" ]] || ! is_plugin_selected "$name"; then
+      continue
+    fi
+    if ! plugin_file_applies "$index"; then
+      debug "Skipping ${plugin_file_paths[index]##*/}: it only applies to ${plugin_file_oses[index]}"
+      continue
+    fi
+    run_plugin_file "$name" "${plugin_file_paths[index]}"
+    ran_plugins+=("$name")
+  done
+}
+
+load_plugin_files
+
+if [[ "${1:-}" == list ]]; then
+  if [[ $# -gt 1 ]]; then
+    log "Unknown argument: $2"
+    usage >&2
+    exit 1
+  fi
+  list_plugin_names
+  exit 0
+fi
+
+# Parse command-line arguments
+dry_run=false
+force=false
+install_packages_step=false
+install_config_step=false
+selected_plugins=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --packages) install_packages_step=true; shift ;;
+    --config) install_config_step=true; shift ;;
+    --plugin=*) selected_plugins+=("${1#--plugin=}"); shift ;;
+    --plugin)
+      if [[ $# -lt 2 ]]; then
+        log "Error: --plugin requires a plugin name"
+        usage >&2
+        exit 1
+      fi
+      selected_plugins+=("$2")
+      shift 2
+      ;;
+    --force) force=true; shift ;;
+    --dry-run) dry_run=true; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) log "Unknown argument: $1"; usage >&2; exit 1 ;;
+  esac
+done
+if [[ "$install_packages_step" == false && "$install_config_step" == false ]]; then
+  install_packages_step=true
+  install_config_step=true
+fi
+for plugin_name in ${selected_plugins[@]+"${selected_plugins[@]}"}; do
+  if ! list_plugin_names | grep -qxF -- "$plugin_name"; then
+    log "Unknown plugin: $plugin_name"
+    usage >&2
+    exit 1
+  fi
+done
+
+export MISE_CONFIG_DIR="$DOTFILES_PATH/config/mise"
+force_required=false
+current_env_file=""
+ran_plugins=()
+trap on_entrypoint_exit EXIT
+
+for ((plugin_index = 0; plugin_index < ${#plugin_file_paths[@]}; plugin_index++)); do
+  if [[ "${plugin_file_kinds[plugin_index]}" == env ]] && plugin_file_applies "$plugin_index"; then
+    load_env_file "${plugin_file_paths[plugin_index]}"
+  fi
+done
+
+if [[ "$install_packages_step" == true ]]; then
+  run_plugin_files packages
+fi
+if [[ "$install_config_step" == true ]]; then
+  run_plugin_files config
+fi
+
+for plugin_name in ${selected_plugins[@]+"${selected_plugins[@]}"}; do
+  if [[ ${#ran_plugins[@]} -eq 0 ]] || ! contains "$plugin_name" "${ran_plugins[@]}"; then
+    debug "Skipping $plugin_name: no plugin files for the selected phases on $CURRENT_OS"
+  fi
+done
+
+if [[ "$force_required" == true ]]; then
+  exit "$EXIT_FORCE_REQUIRED"
+fi
