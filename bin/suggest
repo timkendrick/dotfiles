@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Endpoint for the local OpenAI-compatible API
-OLLAMA_ENDPOINT="http://localhost:11434/api/chat"
+# Base URL of the Ollama server, derived from OLLAMA_HOST ("host", "host:port" or a full URL)
+ollama_base_url() {
+  local host="${OLLAMA_HOST:-127.0.0.1:11434}"
+  if [[ "$host" != *://* ]]; then
+    [[ "$host" == *:* ]] || host="$host:11434"
+    host="http://$host"
+  fi
+  printf '%s' "${host%/}"
+}
+
+# Endpoint for the Ollama chat API
+OLLAMA_ENDPOINT="$(ollama_base_url)/api/chat"
 
 # Model for natural language to shell command conversion
 NL2SH_MODEL="hf.co/ThorOdinson246/nl2sh-1.5b-Q4_K_M:Q4_K_M"
