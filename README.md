@@ -24,6 +24,13 @@ Install `brew` and `Brewfile` packages:
 brew bundle install --file config/brew/Brewfile
 ```
 
+Install `mise` packages:
+
+```bash
+mise install
+mise-link-global-npm-packages
+```
+
 Load `.vimrc` configuration and plugins:
 
 ```bash
