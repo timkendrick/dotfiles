@@ -1,6 +1,13 @@
 return {
   {
     "folke/snacks.nvim",
+    keys = {
+      -- Disable LazyVim's GitHub issue/PR picker keymaps
+      { "<leader>gi", false },
+      { "<leader>gI", false },
+      { "<leader>gp", false },
+      { "<leader>gP", false },
+    },
     opts = {
       picker = {
         sources = {

@@ -10,3 +10,9 @@ vim.keymap.set(
 )
 
 vim.keymap.set({ "v" }, "<Leader>y", '"+ygv', { desc = "Copy selection to clipboard" })
+
+-- Disable LazyVim's lazygit keymaps (only defined when lazygit is on PATH)
+if vim.fn.executable("lazygit") == 1 then
+  vim.keymap.del("n", "<leader>gg")
+  vim.keymap.del("n", "<leader>gG")
+end
