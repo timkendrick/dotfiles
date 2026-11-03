@@ -226,7 +226,7 @@ url_api = "https://api.github.com/repos/AlDanial/cloc/releases/assets/466555197"
 
 [[tools.dotnet]]
 version = "10.0.400"
-backend = "asdf:dotnet"
+backend = "core:dotnet"
 specifiers = ["latest"]
 
 [[tools.duckdb]]
