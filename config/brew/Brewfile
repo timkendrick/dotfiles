@@ -8,6 +8,8 @@ brew "curl", link: true
 brew "ffmpeg"
 # Distributed revision control system
 brew "git"
+# Automatic git commit --fixup
+brew "git-absorb"
 # Improved top (interactive process viewer)
 brew "htop"
 # C/C++ and Java libraries for Unicode and globalization
