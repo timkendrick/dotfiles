@@ -1,2 +1,2 @@
 # Get number of CPU cores
-alias numcpu="sysctl -n hw.ncpu"
+alias numcpu="getconf _NPROCESSORS_ONLN"
