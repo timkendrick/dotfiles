@@ -65,6 +65,7 @@ watchexec = "latest"
 "npm:typescript" = "latest"
 "npm:typescript-language-server" = "latest"
 "npm:yaml-language-server" = "latest"
+"pipx:huggingface_hub" = "latest"
 
 [settings]
 experimental = true
