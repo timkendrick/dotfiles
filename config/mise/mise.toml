@@ -74,6 +74,8 @@ watchexec = "latest"
 [settings]
 experimental = true
 idiomatic_version_file_enable_tools = ["node"]
+lockfile = true
+lockfile_platforms = ["linux-arm64", "linux-x64", "macos-arm64"]
 
 [settings.node]
 corepack = true

@@ -1,0 +1,7 @@
+{
+  "name": "mise-npm-install",
+  "private": true,
+  "dependencies": {
+    "pi-powerline-footer": "0.22.0"
+  }
+}

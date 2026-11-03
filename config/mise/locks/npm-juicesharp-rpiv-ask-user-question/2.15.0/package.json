@@ -1,0 +1,7 @@
+{
+  "name": "mise-npm-install",
+  "private": true,
+  "dependencies": {
+    "@juicesharp/rpiv-ask-user-question": "2.15.0"
+  }
+}
