@@ -28,7 +28,7 @@ Install `mise` packages:
 
 ```bash
 mise install
-mise-link-global-npm-packages
+mise-utils link-npm-packages
 ```
 
 Load `.vimrc` configuration and plugins:

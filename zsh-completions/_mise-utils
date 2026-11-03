@@ -1,0 +1,29 @@
+#compdef mise-utils
+#description helpers for mise-managed tools
+
+_mise-utils() {
+  local -a subcommands
+  subcommands=(
+    'list-packages:list the configured tools that use a backend'
+    'link-npm-packages:symlink mise-managed npm packages into the global node_modules'
+    'unlink-npm-packages:remove symlinks created by link-npm-packages'
+  )
+
+  if (( CURRENT == 2 )); then
+    _describe 'subcommand' subcommands
+    return
+  fi
+
+  case "$words[2]" in
+    list-packages)
+      (( CURRENT == 3 )) && _values 'backend' aqua cargo github go npm pipx
+      ;;
+    link-npm-packages|unlink-npm-packages)
+      local -a pkgs
+      pkgs=(${(f)"$(mise-utils list-packages npm 2>/dev/null)"})
+      _values -w 'package' "${pkgs[@]}"
+      ;;
+  esac
+}
+
+_mise-utils "$@"

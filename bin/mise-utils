@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  local command_name
+  command_name="$(basename "$0")"
+  cat <<EOF
+Usage: $command_name <subcommand> [arguments...]
+
+Helpers for mise-managed tools.
+
+Subcommands:
+  list-packages <backend>          List the configured tools that use the given backend
+                                   (e.g. cargo, github, go, npm)
+  link-npm-packages [<pkg>...]     Symlink mise-managed npm packages into the global node_modules
+                                   directory of the mise-managed node install, so that node can
+                                   resolve them as global packages. Defaults to all npm packages.
+  unlink-npm-packages [<pkg>...]   Remove symlinks created by link-npm-packages.
+                                   Defaults to all symlinked packages.
+
+Package names use the mise tool format (e.g. npm:typescript, npm:@scope/name).
+
+Options:
+  -h, --help                       Show this help message and exit
+EOF
+}
+
+log() {
+  echo "$*" >&2
+}
+
+# Print the configured tools that use the given backend, one per line
+list_packages() {
+  local backend="$1"
+  mise ls --json | jq --raw-output --arg prefix "$backend:" 'keys[] | select(startswith($prefix))'
+}
+
+# Print the global node_modules directory of the mise-managed node install
+global_node_modules_path() {
+  echo "$(mise where node)/lib/node_modules"
+}
+
+link_npm_packages() {
+  local node_modules_path pkg pkg_dir pkg_name lib_path pkg_path existing_link_target
+  node_modules_path="$(global_node_modules_path)"
+  local pkgs=("$@")
+  if [[ ${#pkgs[@]} -eq 0 ]]; then
+    while IFS= read -r pkg; do
+      pkgs+=("$pkg")
+    done < <(list_packages npm)
+  fi
+  for pkg in ${pkgs[@]+"${pkgs[@]}"}; do
+    pkg_dir="$(mise where "$pkg")"
+    pkg_name="${pkg#npm:}"
+    lib_path="$node_modules_path/$pkg_name"
+    pkg_path="$pkg_dir/node_modules/$pkg_name"
+    existing_link_target=""
+    if [[ -L "$lib_path" ]]; then
+      existing_link_target="$(readlink "$lib_path")"
+    fi
+    if [[ -n "$existing_link_target" && "$existing_link_target" != "$pkg_path" ]]; then
+      log "Unlinking: $lib_path > $existing_link_target"
+      rm "$lib_path"
+    fi
+    if [[ -d "$lib_path" ]]; then
+      log "Linked: $pkg"
+      continue
+    fi
+    log "Linking $pkg..."
+    mkdir -p "$(dirname "$lib_path")"
+    ln -s "$pkg_path" "$lib_path"
+    log "Linked: $lib_path > $pkg_path"
+  done
+}
+
+# Print the package names of all symlinked packages in the given node_modules directory
+list_linked_npm_packages() {
+  local node_modules_path="$1"
+  local lib_path scoped_lib_path
+  for lib_path in "$node_modules_path"/*; do
+    if [[ -L "$lib_path" ]]; then
+      echo "npm:${lib_path#"$node_modules_path"/}"
+    elif [[ -d "$lib_path" && "$(basename "$lib_path")" == @* ]]; then
+      for scoped_lib_path in "$lib_path"/*; do
+        if [[ -L "$scoped_lib_path" ]]; then
+          echo "npm:${scoped_lib_path#"$node_modules_path"/}"
+        fi
+      done
+    fi
+  done
+}
+
+unlink_npm_packages() {
+  local node_modules_path pkg pkg_name lib_path parent_dir
+  node_modules_path="$(global_node_modules_path)"
+  local pkgs=("$@")
+  if [[ ${#pkgs[@]} -eq 0 ]]; then
+    while IFS= read -r pkg; do
+      pkgs+=("$pkg")
+    done < <(list_linked_npm_packages "$node_modules_path")
+  fi
+  for pkg in ${pkgs[@]+"${pkgs[@]}"}; do
+    pkg_name="${pkg#npm:}"
+    lib_path="$node_modules_path/$pkg_name"
+    log "Unlinking $pkg..."
+    if [[ ! -L "$lib_path" ]]; then
+      log "Not linked: $pkg"
+      continue
+    fi
+    rm "$lib_path"
+    # Remove the parent directory of a scoped package if it is now empty
+    if [[ "$pkg_name" == @*/* ]]; then
+      parent_dir="$(dirname "$lib_path")"
+      if [[ -d "$parent_dir" && -z "$(ls -A "$parent_dir")" ]]; then
+        rmdir "$parent_dir"
+      fi
+    fi
+    log "Unlinked: $pkg"
+  done
+}
+
+# Parse command-line arguments
+if [[ $# -eq 0 ]]; then
+  usage >&2
+  exit 1
+fi
+subcommand="$1"
+shift
+case "$subcommand" in
+  -h|--help) usage; exit 0 ;;
+  list-packages)
+    if [[ $# -ne 1 || "$1" == -* ]]; then
+      usage >&2
+      exit 1
+    fi
+    list_packages "$1"
+    ;;
+  link-npm-packages|unlink-npm-packages)
+    for arg in "$@"; do
+      case "$arg" in
+        -h|--help) usage; exit 0 ;;
+        -*) log "Unknown option: $arg"; usage >&2; exit 1 ;;
+      esac
+    done
+    if [[ "$subcommand" == link-npm-packages ]]; then
+      link_npm_packages "$@"
+    else
+      unlink_npm_packages "$@"
+    fi
+    ;;
+  *)
+    log "Unknown subcommand: $subcommand"
+    usage >&2
+    exit 1
+    ;;
+esac
