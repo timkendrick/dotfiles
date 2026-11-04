@@ -75,6 +75,9 @@ watchexec = "latest"
 experimental = true
 idiomatic_version_file_enable_tools = ["node"]
 
+[settings.node]
+corepack = true
+
 [settings.pipx]
 uvx = true
 
