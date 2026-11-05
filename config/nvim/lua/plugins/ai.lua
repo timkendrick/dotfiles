@@ -1,7 +1,6 @@
 return {
   -- Restore default Tab behavior
-  -- Restore default CR behavior
-  -- <M-CR> accepts the current AI suggestion
+  -- <M-CR> accepts the current AI suggestion, and does nothing when there is none
   -- <M-Tab> jumps to the next edit suggestion, a second <M-Tab> applies the next edit suggestion
   {
     "saghen/blink.cmp",
@@ -9,7 +8,7 @@ return {
       keymap = {
         ["<Tab>"] = { "snippet_forward", "fallback" },
         ["<M-Tab>"] = { LazyVim.cmp.map({ "ai_nes" }), "fallback" },
-        ["<M-CR>"] = { LazyVim.cmp.map({ "ai_accept" }), "fallback" },
+        ["<M-CR>"] = { LazyVim.cmp.map({ "ai_accept" }) },
       },
     },
   },

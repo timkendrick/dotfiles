@@ -11,6 +11,9 @@ vim.keymap.set(
 
 vim.keymap.set({ "v" }, "<Leader>y", '"+ygv', { desc = "Copy selection to clipboard" })
 
+-- Prevent <M-CR> from moving the cursor (and discarding the AI suggestion) when mistakenly typing <M-CR> instead of <M-Tab> to apply the next edit suggestion
+vim.keymap.set("n", "<M-CR>", "<Nop>")
+
 -- Disable LazyVim's lazygit keymaps (only defined when lazygit is on PATH)
 if vim.fn.executable("lazygit") == 1 then
   vim.keymap.del("n", "<leader>gg")
