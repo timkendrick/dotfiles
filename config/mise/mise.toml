@@ -34,7 +34,6 @@ python = "3.12"
 ripgrep = "latest"
 ruff = "latest"
 rust = { version = "latest", components = ["rust-analyzer"], mr_boxington = true }
-sccache = "latest"
 shellcheck = "latest"
 television = "latest"
 terraform = "latest"

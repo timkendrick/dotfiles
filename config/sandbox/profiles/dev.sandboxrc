@@ -56,7 +56,6 @@
 --plugin python
 --plugin rust
 --plugin rustup
---plugin sccache
 --plugin storybook
 --plugin tt
 --plugin vcs
