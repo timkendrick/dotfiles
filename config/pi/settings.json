@@ -9,8 +9,7 @@
     "npm:pi-goal-x",
     "npm:pi-herdr-agents",
     "npm:pi-powerline-footer",
-    "npm:pi-system-prompt",
-    "npm:pi-web-providers"
+    "npm:pi-system-prompt"
   ],
   "defaultTools": [
     "read",

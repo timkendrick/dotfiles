@@ -810,12 +810,6 @@ aube = { path = "locks/npm-pi-system-prompt/0.1.4", digest = "sha256:7a335266685
 backend = "npm:pi-system-prompt"
 specifiers = ["latest"]
 
-[[tools."npm:pi-web-providers"]]
-version = "3.5.1"
-aube = { path = "locks/npm-pi-web-providers/3.5.1", digest = "sha256:b1c513e5c7f5e6557ef0226d1e66041da09dda909db7c97e27421ce18fdcc7ee" }
-backend = "npm:pi-web-providers"
-specifiers = ["latest"]
-
 [[tools."npm:typescript"]]
 version = "7.0.2"
 aube = { path = "locks/npm-typescript/7.0.2", digest = "sha256:3d06b3b23564c68cdad7815c356edb1506fab1c42bfb8c54234134fd9650ec17" }
