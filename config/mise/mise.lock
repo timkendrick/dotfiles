@@ -750,6 +750,12 @@ aube = { path = "locks/npm-juicesharp-rpiv-ask-user-question/2.15.0", digest = "
 backend = "npm:@juicesharp/rpiv-ask-user-question"
 specifiers = ["latest"]
 
+[[tools."npm:@narumitw/pi-caffeinate"]]
+version = "0.49.14"
+aube = { path = "locks/npm-narumitw-pi-caffeinate/0.49.14", digest = "sha256:8bd7f4cdb73a0664334f2bca9001fa3ac5f9e20b55154375e7b2242510994045" }
+backend = "npm:@narumitw/pi-caffeinate"
+specifiers = ["latest"]
+
 [[tools."npm:@narumitw/pi-lsp"]]
 version = "0.49.12"
 aube = { path = "locks/npm-narumitw-pi-lsp/0.49.12", digest = "sha256:70b95c4503e54b02ee0f74b49646bea7ea969a45eec423ccf54e5415ca7dc1ad" }
@@ -772,12 +778,6 @@ specifiers = ["latest"]
 version = "5.8.1"
 aube = { path = "locks/npm-bash-language-server/5.8.1", digest = "sha256:04a8ed32e542efcdb8eec68c26ea939f6758453310d97b30d314da36841ef79f" }
 backend = "npm:bash-language-server"
-specifiers = ["latest"]
-
-[[tools."npm:pi-caffeinate"]]
-version = "2.0.0"
-aube = { path = "locks/npm-pi-caffeinate/2.0.0", digest = "sha256:e8b0ff9889d934ad42a5d3c92754f078c1955a514a022ee5360e22ec143c0d54" }
-backend = "npm:pi-caffeinate"
 specifiers = ["latest"]
 
 [[tools."npm:pi-compact-transcript"]]
