@@ -188,11 +188,6 @@ version = "2.4.0"
 backend = "cargo:convfmt"
 specifiers = ["latest"]
 
-[[tools."cargo:toml2json"]]
-version = "1.4.0"
-backend = "cargo:toml2json"
-specifiers = ["latest"]
-
 [[tools.claude-code]]
 version = "2.1.316"
 backend = "aqua:anthropics/claude-code"
