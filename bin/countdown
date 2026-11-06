@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DEFAULT_TIMEOUT=10
+
+usage() {
+  local command_name
+  command_name="$(basename "$0")"
+  cat <<EOF
+Usage: $command_name <message> [--timeout=<seconds> | --timeout <seconds>]
+
+Print a warning to stderr and wait, so that the user can press Ctrl+C to abort the caller.
+
+Options:
+  --timeout=<seconds>  Number of seconds to wait (default: $DEFAULT_TIMEOUT)
+  -h, --help           Show this help message and exit
+
+Colors are used only when stderr is a terminal and NO_COLOR is not set.
+
+Example:
+  $command_name "This will delete the home directory" --timeout=5 && rm -rf "\$HOME"
+EOF
+}
+
+die() {
+  echo "Error: $*" >&2
+  exit 1
+}
+
+# Print an ANSI escape sequence, if stderr supports colors
+ansi() {
+  if [[ -t 2 && -z "${NO_COLOR:-}" ]]; then
+    printf '\033[%sm' "$1"
+  fi
+}
+
+message=""
+timeout="$DEFAULT_TIMEOUT"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --timeout=*) timeout="${1#--timeout=}"; shift ;;
+    --timeout)
+      [[ $# -ge 2 ]] || die "--timeout requires a value"
+      timeout="$2"
+      shift 2
+      ;;
+    -*) echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
+    *)
+      [[ -z "$message" ]] || { echo "Unexpected argument: $1" >&2; usage >&2; exit 1; }
+      message="$1"
+      shift
+      ;;
+  esac
+done
+[[ -n "$message" ]] || { usage >&2; exit 1; }
+[[ "$timeout" =~ ^[0-9]+$ ]] || die "invalid timeout: $timeout"
+
+echo "⚠️  $(ansi 31)$message$(ansi 0) ⚠️  $(ansi 1)Press Ctrl+C within $timeout seconds to abort.$(ansi 0)" >&2
+sleep "$timeout"
