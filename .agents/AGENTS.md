@@ -46,6 +46,8 @@ If your suggested approach relies on any 3rd-party library dependencies, don't a
 
 Before making any change, no matter how minor, always create a new VCS 'checkpoint' commit if there are uncommitted changes in the working copy. Similarly, whenever you make any incremental progress, no matter how small, create a new commit.
 
+After all changes have been committed, always draw attention to any deviations to the agreed plan and offer to write a comprehensive implementation summary so that all implementation decisions can be recorded for posterity. Do not reference specific commits in the summary, as commits may be squashed or rebased.
+
 ## Commit message guidelines
 
 Don't focus on describing changes to individual files (this can be trivially determined by inspecting the commit contents), instead explain the updated high-level behavior resulting from the commit, and (if relevant) the motivation for the commit.
