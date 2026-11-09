@@ -54,7 +54,7 @@ width = "80%"
 height = "80%"
 
 [[keys.command]]
-key = "prefix+j"
+key = "prefix+shift+j"
 type = "popup"
 command = "jjui"
 width = "80%"
@@ -71,6 +71,14 @@ key = "prefix+shift+s"
 type = "plugin_action"
 command = "jhochenbaum.hunkdiff.send-review"
 description = "hunk: send review to agent"
+
+[[keys.command]]
+key = "prefix+t"
+type = "popup"
+command = "htop --tree -p $(pid-tree $(herdr pane process-info --pane $HERDR_ACTIVE_PANE_ID | jq --raw-output '.result.process_info.shell_pid') | tr '\n' ',')"
+description = "Show current tab process tree"
+width = "80%"
+height = "80%"
 
 [keys]
 copy_mode = "prefix+v"
