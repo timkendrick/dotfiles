@@ -47,6 +47,14 @@ command = "osamahbeig.pane-mover.open"
 description = "move this pane"
 
 [[keys.command]]
+key = "prefix+f"
+type = "popup"
+command = "tv | tr -d '\\n' | pbcopy"
+description = "Copy file path from current working directory"
+width = "80%"
+height = "80%"
+
+[[keys.command]]
 key = "prefix+g"
 type = "popup"
 command = "lazygit"
