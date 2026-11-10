@@ -307,6 +307,28 @@ checksum = "sha256:1e76698eb481436e42119bea6aa6e2bd9552ff090789d769c286e3c3a4e0d
 url = "https://github.com/junegunn/fzf/releases/download/v0.75.0/fzf-0.75.0-darwin_arm64.tar.gz"
 url_api = "https://api.github.com/repos/junegunn/fzf/releases/assets/720590797"
 
+[[tools."github:RivoLink/leaf"]]
+version = "1.29.2"
+backend = "github:RivoLink/leaf"
+specifiers = ["latest"]
+
+[tools."github:RivoLink/leaf"."platforms.linux-arm64"]
+checksum = "sha256:748b0e91889d429f3a9002fb3440f42d3324a2e7c645011f423aec07c7bc44d3"
+checksum_source = "mise-versions"
+url = "https://github.com/RivoLink/leaf/releases/download/1.29.2/leaf-linux-arm64"
+url_api = "https://api.github.com/repos/RivoLink/leaf/releases/assets/675966705"
+
+[tools."github:RivoLink/leaf"."platforms.linux-x64"]
+checksum = "sha256:ee31e39a58c848053685f4302a94cf942f8fd36c8d2f5d7d77bdac54417c6da7"
+checksum_source = "mise-versions"
+url = "https://github.com/RivoLink/leaf/releases/download/1.29.2/leaf-linux-x86_64"
+url_api = "https://api.github.com/repos/RivoLink/leaf/releases/assets/675966702"
+
+[tools."github:RivoLink/leaf"."platforms.macos-arm64"]
+checksum = "sha256:940b0fcbb57e8fafab0c2ae8a19cee6cefede1e61f72a76a2d93553ae503d85a"
+url = "https://github.com/RivoLink/leaf/releases/download/1.29.2/leaf-macos-arm64"
+url_api = "https://api.github.com/repos/RivoLink/leaf/releases/assets/675966700"
+
 [[tools."github:backnotprop/plannotator"]]
 version = "0.28.52"
 backend = "github:backnotprop/plannotator"

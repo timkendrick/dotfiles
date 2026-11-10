@@ -48,6 +48,7 @@ watchexec = "latest"
 "github:docker/buildx" = { version = "latest", bin = "docker-buildx" }
 "github:docker/compose" = "latest"
 "github:microsoft/go-sqlcmd" = "latest"
+"github:RivoLink/leaf" = "latest"
 "go:github.com/dolmen-go/docker-list-context" = "latest"
 "npm:@earendil-works/pi-coding-agent" = "latest"
 "npm:@juicesharp/rpiv-ask-user-question" = "latest"
