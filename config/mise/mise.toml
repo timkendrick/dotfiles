@@ -1,3 +1,9 @@
+[env]
+MISE_SKILL_AGENTS = "claude-code,codex"
+
+[plugins]
+skill = "https://github.com/kukv/mise-skill"
+
 [tools]
 argo = "latest"
 ast-grep = "latest"
