@@ -75,6 +75,7 @@ watchexec = "latest"
 "npm:typescript-language-server" = "latest"
 "npm:yaml-language-server" = "latest"
 "pipx:huggingface_hub" = "latest"
+"skill:rodbv/socratic-skills" = { version = "ref:main", skills = ["guide-me", "quiz-me"] }
 
 [settings]
 experimental = true

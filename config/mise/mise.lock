@@ -988,6 +988,11 @@ checksum_source = "mise-versions"
 url = "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.darwin.aarch64.tar.xz"
 url_api = "https://api.github.com/repos/koalaman/shellcheck/releases/assets/279056932"
 
+[[tools."skill:rodbv/socratic-skills"]]
+version = "ref:main"
+backend = "skill:rodbv/socratic-skills"
+specifiers = ["ref:main"]
+
 [[tools.television]]
 version = "0.15.9"
 backend = "aqua:alexpasmantier/television"
