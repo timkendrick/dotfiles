@@ -188,6 +188,11 @@ version = "2.4.0"
 backend = "cargo:convfmt"
 specifiers = ["latest"]
 
+[[tools."cargo:nail-parquet"]]
+version = "1.9.0"
+backend = "cargo:nail-parquet"
+specifiers = ["latest"]
+
 [[tools."cargo:stu"]]
 version = "0.7.6"
 backend = "cargo:stu"
