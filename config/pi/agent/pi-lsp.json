@@ -1,7 +1,16 @@
 {
   "tsc": {
-    "command": ["tsc", "--lsp", "--stdio"],
-    "extensions": [".ts", ".tsx"]
+    "command": [
+      "typescript-language-server",
+      "--stdio"
+    ],
+    "extensions": [
+      ".ts",
+      ".tsx"
+    ],
+    "initialization": {
+      "maxTsServerMemory": 8192
+    }
   },
   "biome": {
     "command": [
