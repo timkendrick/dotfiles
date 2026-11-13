@@ -2,7 +2,7 @@
 MISE_SKILL_AGENTS = "claude-code,codex"
 
 [plugins]
-skill = "https://github.com/kukv/mise-skill"
+skill = "https://github.com/timkendrick/mise-skill#v0.1.0"
 
 [tools]
 argo = "latest"
