@@ -188,6 +188,11 @@ version = "2.4.0"
 backend = "cargo:convfmt"
 specifiers = ["latest"]
 
+[[tools."cargo:stu"]]
+version = "0.7.6"
+backend = "cargo:stu"
+specifiers = ["latest"]
+
 [[tools.claude-code]]
 version = "2.1.322"
 backend = "aqua:anthropics/claude-code"

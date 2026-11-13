@@ -44,6 +44,7 @@ uv = "latest"
 watchexec = "latest"
 "aqua:docker/cli" = "latest"
 "cargo:convfmt" = "latest"
+"cargo:stu" = "latest"
 "github:backnotprop/plannotator" = "latest"
 "github:docker/buildx" = { version = "latest", bin = "docker-buildx" }
 "github:docker/compose" = "latest"
