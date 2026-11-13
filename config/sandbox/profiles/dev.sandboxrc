@@ -17,6 +17,7 @@
 --plugin gnu
 --plugin proxy
 --plugin ssl
+--plugin agents
 --plugin bash
 --plugin brew
 --plugin cargo
