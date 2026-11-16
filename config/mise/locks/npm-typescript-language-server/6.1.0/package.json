@@ -2,6 +2,6 @@
   "name": "mise-npm-install",
   "private": true,
   "dependencies": {
-    "pi-herdr-agents": "3.9.0"
+    "typescript-language-server": "6.1.0"
   }
 }
