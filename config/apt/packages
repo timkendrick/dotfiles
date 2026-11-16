@@ -1,6 +1,7 @@
 # Ubuntu packages for user-installed tools
 # Blank lines and lines starting with # are ignored.
 
+btop
 ffmpeg
 git-absorb
 htop

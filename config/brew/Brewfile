@@ -1,5 +1,7 @@
 # Get/set bluetooth power and discoverable state
 brew "blueutil"
+# Resource monitor. C++ version and continuation of bashtop and bpytop
+brew "btop"
 # Container runtimes on MacOS (and Linux) with minimal setup
 brew "colima", restart_service: :changed
 # Get a file from an HTTP, HTTPS or FTP server
