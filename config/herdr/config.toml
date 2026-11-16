@@ -83,7 +83,7 @@ description = "hunk: send review to agent"
 [[keys.command]]
 key = "prefix+t"
 type = "popup"
-command = "htop --tree -p $(pid-tree $(herdr pane process-info --pane $HERDR_ACTIVE_PANE_ID | jq --raw-output '.result.process_info.shell_pid') | tr '\n' ',')"
+command = "HERDR_ACTIVE_PANE_SHELL_PID=\"$(herdr pane process-info --pane $HERDR_ACTIVE_PANE_ID | jq --raw-output '.result.process_info.shell_pid')\" && btop --filter '!^'$HERDR_ACTIVE_PANE_SHELL_PID'$'"
 description = "Show current tab process tree"
 width = "80%"
 height = "80%"
