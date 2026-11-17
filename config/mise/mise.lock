@@ -43,26 +43,26 @@ url = "https://github.com/argoproj/argo-workflows/releases/download/v4.1.6/argo-
 url_api = "https://api.github.com/repos/argoproj/argo-workflows/releases/assets/665227921"
 
 [[tools.ast-grep]]
-version = "0.51.2"
+version = "0.51.3"
 backend = "aqua:ast-grep/ast-grep"
 specifiers = ["latest"]
 
 [tools.ast-grep."platforms.linux-arm64"]
-checksum = "sha256:c3ab2bd43959db28621dc1551c13ea5fe5db4c1fc7b18086dade6b65042c78d0"
+checksum = "sha256:5b44fd68e78744934b359b07badce347d4197ed50b341d50f1f99d056ecedb08"
 checksum_source = "mise-versions"
-url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.2/app-aarch64-unknown-linux-gnu.zip"
-url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/734228024"
+url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.3/app-aarch64-unknown-linux-gnu.zip"
+url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/753397190"
 
 [tools.ast-grep."platforms.linux-x64"]
-checksum = "sha256:40604c21c38d4c7581c56bdddeef277c56bf3c0113620aa96e78ae87e82366df"
+checksum = "sha256:22803eb0c5bf83164fb7fd76d4721d355ecf0c8466ef47342c1ec7d80897ca47"
 checksum_source = "mise-versions"
-url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.2/app-x86_64-unknown-linux-gnu.zip"
-url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/734234607"
+url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.3/app-x86_64-unknown-linux-gnu.zip"
+url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/753396224"
 
 [tools.ast-grep."platforms.macos-arm64"]
-checksum = "sha256:ea4f4082d25e5f8e0450add6fd488dd008a373c90483cc2031759c8431f1dcfb"
-url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.2/app-aarch64-apple-darwin.zip"
-url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/734229272"
+checksum = "sha256:7954eab1e2803d1485f263377be7f359db6d3915312b5d773cd575eb009330b1"
+url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.3/app-aarch64-apple-darwin.zip"
+url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/753396910"
 
 [[tools.awscli]]
 version = "2.40.3"
@@ -105,26 +105,26 @@ url = "https://github.com/sharkdp/bat/releases/download/v0.26.1/bat-v0.26.1-aarc
 url_api = "https://api.github.com/repos/sharkdp/bat/releases/assets/323548442"
 
 [[tools.biome]]
-version = "2.6.7"
+version = "2.6.8"
 backend = "aqua:biomejs/biome"
 specifiers = ["latest"]
 
 [tools.biome."platforms.linux-arm64"]
-checksum = "sha256:9fb030ad316bbbf9a7379e52c0a1d2ad44d6b97cc7fec91745f4901961804732"
-url = "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.6.7/biome-linux-arm64"
-url_api = "https://api.github.com/repos/biomejs/biome/releases/assets/737014628"
+checksum = "sha256:3e5b3bf3ff21c4beecfef424fd429d6937c5e04fe5d332ad69d45806349ce20c"
+url = "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.6.8/biome-linux-arm64"
+url_api = "https://api.github.com/repos/biomejs/biome/releases/assets/751278596"
 provenance = "github-attestations"
 
 [tools.biome."platforms.linux-x64"]
-checksum = "sha256:d924b8407471748465121f0a2dc1a0bc277038b0b89142e77583e3ce0dda3746"
-url = "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.6.7/biome-linux-x64"
-url_api = "https://api.github.com/repos/biomejs/biome/releases/assets/737014619"
+checksum = "sha256:fc1cb7c6664d6fa315144f58bd03096ee5d035e641538840a80262d59203d5dd"
+url = "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.6.8/biome-linux-x64"
+url_api = "https://api.github.com/repos/biomejs/biome/releases/assets/751278589"
 provenance = "github-attestations"
 
 [tools.biome."platforms.macos-arm64"]
-checksum = "sha256:5ea2cd7d212b10132ee960ce480fc33aab761d0d6b658a1112c36c2657ed0957"
-url = "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.6.7/biome-darwin-arm64"
-url_api = "https://api.github.com/repos/biomejs/biome/releases/assets/737014629"
+checksum = "sha256:16c2a522889a679768bafe463523aded030c51f17004cf5c579750422443fcc4"
+url = "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.6.8/biome-darwin-arm64"
+url_api = "https://api.github.com/repos/biomejs/biome/releases/assets/751278580"
 provenance = "github-attestations"
 
 [[tools.bun]]
@@ -339,26 +339,26 @@ url = "https://github.com/RivoLink/leaf/releases/download/1.29.3/leaf-macos-arm6
 url_api = "https://api.github.com/repos/RivoLink/leaf/releases/assets/741098140"
 
 [[tools."github:backnotprop/plannotator"]]
-version = "0.28.65"
+version = "0.28.66"
 backend = "github:backnotprop/plannotator"
 specifiers = ["latest"]
 
 [tools."github:backnotprop/plannotator"."platforms.linux-arm64"]
-checksum = "sha256:86e7be71a7d7948d355ed3e0856f2d218b6e7b5701196048c5c3fe132633a900"
-url = "https://github.com/backnotprop/plannotator/releases/download/v0.28.65/plannotator-linux-arm64.tar.xz"
-url_api = "https://api.github.com/repos/backnotprop/plannotator/releases/assets/749214801"
+checksum = "sha256:8f6388b7b9106d8260002dccee92d219f58d09c66f53400b6c3d90a326446bf9"
+url = "https://github.com/backnotprop/plannotator/releases/download/v0.28.66/plannotator-linux-arm64.tar.xz"
+url_api = "https://api.github.com/repos/backnotprop/plannotator/releases/assets/753808069"
 provenance = "github-attestations"
 
 [tools."github:backnotprop/plannotator"."platforms.linux-x64"]
-checksum = "sha256:d08f2934126f1f71b2b5be4ca12653c03245a8697cd5b0a792f79b6a6dca13ad"
-url = "https://github.com/backnotprop/plannotator/releases/download/v0.28.65/plannotator-linux-x64.tar.xz"
-url_api = "https://api.github.com/repos/backnotprop/plannotator/releases/assets/749214817"
+checksum = "sha256:a099dfc1950e44cfd1e232b237b325901f07b7f427f1c46166d88fd66d4d4ce8"
+url = "https://github.com/backnotprop/plannotator/releases/download/v0.28.66/plannotator-linux-x64.tar.xz"
+url_api = "https://api.github.com/repos/backnotprop/plannotator/releases/assets/753808042"
 provenance = "github-attestations"
 
 [tools."github:backnotprop/plannotator"."platforms.macos-arm64"]
-checksum = "sha256:10d9837a6ea94ef46bbc991005d5a659c64c81bfd0607c10c00353ac2e0956ee"
-url = "https://github.com/backnotprop/plannotator/releases/download/v0.28.65/plannotator-darwin-arm64.tar.xz"
-url_api = "https://api.github.com/repos/backnotprop/plannotator/releases/assets/749214798"
+checksum = "sha256:748d26deeecc4845905182bc8216f3eebb5748e204ab632da027945e3f7be67d"
+url = "https://github.com/backnotprop/plannotator/releases/download/v0.28.66/plannotator-darwin-arm64.tar.xz"
+url_api = "https://api.github.com/repos/backnotprop/plannotator/releases/assets/753808065"
 provenance = "github-attestations"
 
 [[tools."github:docker/buildx"]]
@@ -796,8 +796,8 @@ backend = "npm:pi-goal-x"
 specifiers = ["latest"]
 
 [[tools."npm:pi-herdr-agents"]]
-version = "3.11.0"
-aube = { path = "locks/npm-pi-herdr-agents/3.11.0", digest = "sha256:65d334c305cccfd7de8fbdfb4c1115cdf8aa181945460675cc78272d32ce9693" }
+version = "3.12.0"
+aube = { path = "locks/npm-pi-herdr-agents/3.12.0", digest = "sha256:bc42afb502c8d362317d8de2f7612dbade011b6caf58e42540239a562aef723e" }
 backend = "npm:pi-herdr-agents"
 specifiers = ["latest"]
 

@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       pi-herdr-agents:
-        specifier: 3.11.0
-        version: 3.11.0(@earendil-works/pi-ai@1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@8.12.3)(ws@8.23.0))(@earendil-works/pi-coding-agent@1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(ws@8.23.0))(@earendil-works/pi-tui@1.5.2)(@sinclair/typebox@0.34.52)
+        specifier: 3.12.0
+        version: 3.12.0(@earendil-works/pi-ai@1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@8.12.3)(ws@8.23.0))(@earendil-works/pi-coding-agent@1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(ws@8.23.0))(@earendil-works/pi-tui@1.5.2)(@sinclair/typebox@0.34.52)
 
 packages:
 
@@ -152,6 +152,24 @@ packages:
 
   '@isaacs/nonrecursive-glob-match@1.1.0':
     resolution: {integrity: sha512-GPm/Dbvk5RLmhRnxXIa7nTpK0xtl4E0wj0MslsuNiJ1FIROU+2+9lgUC/dgF7Ey4QCWhfEsgxilMRMCdHPfDfw==}
+
+  '@nubl/maestro@0.1.1':
+    resolution: {integrity: sha512-fiVxEH7cjipqXgKLOGXcEIHuxQ63QKprmId/wrdNLjrpehwfCKtJlgXVfPCOpma8wA6LQPVzLyW/VxvCzttLzQ==}
+    engines: {node: '>=22.19.0'}
+    peerDependencies:
+      '@earendil-works/pi-ai': '*'
+      '@earendil-works/pi-coding-agent': '*'
+      '@earendil-works/pi-tui': '*'
+      '@sinclair/typebox': '*'
+    peerDependenciesMeta:
+      '@earendil-works/pi-ai':
+        optional: true
+      '@earendil-works/pi-coding-agent':
+        optional: true
+      '@earendil-works/pi-tui':
+        optional: true
+      '@sinclair/typebox':
+        optional: true
 
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
@@ -432,8 +450,8 @@ packages:
     resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
     engines: {node: '>=8'}
 
-  pi-herdr-agents@3.11.0:
-    resolution: {integrity: sha512-30eeewQfthP82RWsENmu8jh6bMve+m23CXn62kHH8S1MiOVlI+/C79KZHACh/sfsYkr88oplgPnQd8XOCuQIig==}
+  pi-herdr-agents@3.12.0:
+    resolution: {integrity: sha512-oc1mjdTqjGc7GBPKaOKCe6cnanFpLHRP7chNvhuqCFRNp/yzRDkQtQKJ/3fKjjeYeMj/tRYY7gu3Y5IjUwbUzQ==}
     peerDependencies:
       '@earendil-works/pi-ai': '*'
       '@earendil-works/pi-coding-agent': '*'
@@ -831,6 +849,13 @@ snapshots:
 
   '@isaacs/nonrecursive-glob-match@1.1.0': {}
 
+  '@nubl/maestro@0.1.1(@earendil-works/pi-ai@1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@8.12.3)(ws@8.23.0))(@earendil-works/pi-coding-agent@1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(ws@8.23.0))(@earendil-works/pi-tui@1.5.2)(@sinclair/typebox@0.34.52)':
+    optionalDependencies:
+      '@earendil-works/pi-ai': 1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@8.12.3)(ws@8.23.0)
+      '@earendil-works/pi-coding-agent': 1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(ws@8.23.0)
+      '@earendil-works/pi-tui': 1.5.2
+      '@sinclair/typebox': 0.34.52
+
   '@protobufjs/aspromise@1.1.2': {}
 
   '@protobufjs/base64@1.1.2': {}
@@ -1086,11 +1111,12 @@ snapshots:
 
   path-key@3.1.1: {}
 
-  pi-herdr-agents@3.11.0(@earendil-works/pi-ai@1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@8.12.3)(ws@8.23.0))(@earendil-works/pi-coding-agent@1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(ws@8.23.0))(@earendil-works/pi-tui@1.5.2)(@sinclair/typebox@0.34.52):
+  pi-herdr-agents@3.12.0(@earendil-works/pi-ai@1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@8.12.3)(ws@8.23.0))(@earendil-works/pi-coding-agent@1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(ws@8.23.0))(@earendil-works/pi-tui@1.5.2)(@sinclair/typebox@0.34.52):
     dependencies:
       '@earendil-works/pi-ai': 1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@8.12.3)(ws@8.23.0)
       '@earendil-works/pi-coding-agent': 1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(ws@8.23.0)
       '@earendil-works/pi-tui': 1.5.2
+      '@nubl/maestro': 0.1.1(@earendil-works/pi-ai@1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@8.12.3)(ws@8.23.0))(@earendil-works/pi-coding-agent@1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(ws@8.23.0))(@earendil-works/pi-tui@1.5.2)(@sinclair/typebox@0.34.52)
       '@sinclair/typebox': 0.34.52
 
   proper-lockfile@4.1.2:
