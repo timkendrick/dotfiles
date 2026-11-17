@@ -1,0 +1,3 @@
+theme = "solarized-dark"
+editor = "nvim +{$line}"
+keep-soft-breaks = false
