@@ -59,6 +59,7 @@
 --plugin rustup
 --plugin storybook
 --plugin tt
+--plugin uv
 --plugin vcs
 --plugin vim
 --plugin vscode
