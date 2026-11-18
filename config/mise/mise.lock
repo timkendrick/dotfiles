@@ -19,6 +19,29 @@ url = "https://download.docker.com/linux/static/stable/x86_64/docker-29.9.3.tgz"
 checksum = "blake3:b7163dbba9272469e0e6933d06f47083f0180dbe48176295beaf8871f6aef882"
 url = "https://download.docker.com/mac/static/stable/aarch64/docker-29.9.3.tgz"
 
+[[tools."aqua:duckdb/duckdb"]]
+version = "2.0.0"
+backend = "aqua:duckdb/duckdb"
+specifiers = ["latest"]
+
+[tools."aqua:duckdb/duckdb"."platforms.linux-arm64"]
+checksum = "sha256:859e1875d2a9515fbb4bf8871061437a14af82320da68c753f094c4b776348fe"
+checksum_source = "mise-versions"
+url = "https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/duckdb/duckdb/releases/assets/662550868"
+
+[tools."aqua:duckdb/duckdb"."platforms.linux-x64"]
+checksum = "sha256:c6507206baf7793c6013dbd82368469a45f20dc0e17a6f92f204602f652ed2bc"
+checksum_source = "mise-versions"
+url = "https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/duckdb/duckdb/releases/assets/662550663"
+
+[tools."aqua:duckdb/duckdb"."platforms.macos-arm64"]
+checksum = "sha256:188a36fe8883ef52e69165a0cbb6031ef679c8e6c448a1ce22951964149b7f96"
+checksum_source = "mise-versions"
+url = "https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-osx-arm64.tar.gz"
+url_api = "https://api.github.com/repos/duckdb/duckdb/releases/assets/662551052"
+
 [[tools.argo]]
 version = "4.1.6"
 backend = "aqua:argoproj/argo-workflows"
@@ -250,27 +273,40 @@ version = "11.0.100"
 backend = "core:dotnet"
 specifiers = ["latest"]
 
-[[tools.duckdb]]
+[[tools."duckdb:avro"]]
 version = "2.0.0"
-backend = "aqua:duckdb/duckdb"
+backend = "duckdb:avro"
 specifiers = ["latest"]
 
-[tools.duckdb."platforms.linux-arm64"]
-checksum = "sha256:859e1875d2a9515fbb4bf8871061437a14af82320da68c753f094c4b776348fe"
-checksum_source = "mise-versions"
-url = "https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/duckdb/duckdb/releases/assets/662550868"
+[[tools."duckdb:aws"]]
+version = "2.0.0"
+backend = "duckdb:aws"
+specifiers = ["latest"]
 
-[tools.duckdb."platforms.linux-x64"]
-checksum = "sha256:c6507206baf7793c6013dbd82368469a45f20dc0e17a6f92f204602f652ed2bc"
-checksum_source = "mise-versions"
-url = "https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/duckdb/duckdb/releases/assets/662550663"
+[[tools."duckdb:azure"]]
+version = "2.0.0"
+backend = "duckdb:azure"
+specifiers = ["latest"]
 
-[tools.duckdb."platforms.macos-arm64"]
-checksum = "sha256:188a36fe8883ef52e69165a0cbb6031ef679c8e6c448a1ce22951964149b7f96"
-url = "https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-osx-arm64.tar.gz"
-url_api = "https://api.github.com/repos/duckdb/duckdb/releases/assets/662551052"
+[[tools."duckdb:ducklake"]]
+version = "2.0.0"
+backend = "duckdb:ducklake"
+specifiers = ["latest"]
+
+[[tools."duckdb:httpfs"]]
+version = "2.0.0"
+backend = "duckdb:httpfs"
+specifiers = ["latest"]
+
+[[tools."duckdb:postgres_scanner"]]
+version = "2.0.0"
+backend = "duckdb:postgres_scanner"
+specifiers = ["latest"]
+
+[[tools."duckdb:spatial"]]
+version = "2.0.0"
+backend = "duckdb:spatial"
+specifiers = ["latest"]
 
 [[tools.fd]]
 version = "10.5.2"

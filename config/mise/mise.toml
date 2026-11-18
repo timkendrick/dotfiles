@@ -2,6 +2,7 @@
 MISE_SKILL_AGENTS = "claude-code,codex"
 
 [plugins]
+duckdb = "https://github.com/timkendrick/mise-duckdb#v0.1.0"
 skill = "https://github.com/timkendrick/mise-skill#v0.1.0"
 
 [tools]
@@ -15,7 +16,6 @@ cargo-binstall = "latest"
 claude-code = "latest"
 cloc = { version = "latest", bin = "cloc", platforms = { linux-arm64 = { asset_pattern = "cloc-{{ version }}.pl" }, linux-x64 = { asset_pattern = "cloc-{{ version }}.pl" }, macos-arm64 = { asset_pattern = "cloc-{{ version }}.pl" }, macos-x64 = { asset_pattern = "cloc-{{ version }}.pl" }, windows-x64 = { asset_pattern = "cloc-{{ version }}.exe" } } }
 dotnet = "latest"
-duckdb = "latest"
 fd = "latest"
 fzf = "latest"
 go = "latest"
@@ -49,9 +49,17 @@ ty = "latest"
 uv = "latest"
 watchexec = "latest"
 "aqua:docker/cli" = "latest"
+"aqua:duckdb/duckdb" = "latest"
 "cargo:convfmt" = "latest"
 "cargo:nail-parquet" = "latest"
 "cargo:stu" = "latest"
+"duckdb:avro" = "latest"
+"duckdb:aws" = "latest"
+"duckdb:azure" = "latest"
+"duckdb:ducklake" = "latest"
+"duckdb:httpfs" = "latest"
+"duckdb:postgres_scanner" = "latest"
+"duckdb:spatial" = "latest"
 "github:backnotprop/plannotator" = "latest"
 "github:docker/buildx" = { version = "latest", bin = "docker-buildx" }
 "github:docker/compose" = "latest"
