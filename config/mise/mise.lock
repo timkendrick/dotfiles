@@ -818,76 +818,10 @@ aube = { path = "locks/npm-earendil-works-pi-coding-agent/1.5.2", digest = "sha2
 backend = "npm:@earendil-works/pi-coding-agent"
 specifiers = ["latest"]
 
-[[tools."npm:@juicesharp/rpiv-ask-user-question"]]
-version = "2.15.0"
-aube = { path = "locks/npm-juicesharp-rpiv-ask-user-question/2.15.0", digest = "sha256:c0c5faeab111c1a3d1cb516ac4f771b8121fbbba26450041621511537c62722e" }
-backend = "npm:@juicesharp/rpiv-ask-user-question"
-specifiers = ["latest"]
-
-[[tools."npm:@narumitw/pi-caffeinate"]]
-version = "0.49.15"
-aube = { path = "locks/npm-narumitw-pi-caffeinate/0.49.15", digest = "sha256:8a8bce90dcd0044d643af7316c43e35a1c4d57bef41607ec7e0d5bf045526884" }
-backend = "npm:@narumitw/pi-caffeinate"
-specifiers = ["latest"]
-
-[[tools."npm:@narumitw/pi-lsp"]]
-version = "0.49.12"
-aube = { path = "locks/npm-narumitw-pi-lsp/0.49.12", digest = "sha256:70b95c4503e54b02ee0f74b49646bea7ea969a45eec423ccf54e5415ca7dc1ad" }
-backend = "npm:@narumitw/pi-lsp"
-specifiers = ["latest"]
-
-[[tools."npm:@tintinweb/pi-tasks"]]
-version = "0.9.1"
-aube = { path = "locks/npm-tintinweb-pi-tasks/0.9.1", digest = "sha256:282d620cbcbe8ce7a1dee8d85b50c40a2551c8854dec4be785395ae84f9fdd24" }
-backend = "npm:@tintinweb/pi-tasks"
-specifiers = ["latest"]
-
-[[tools."npm:@upstash/context7-pi"]]
-version = "0.1.3"
-aube = { path = "locks/npm-upstash-context7-pi/0.1.3", digest = "sha256:301bb87085c26fcfac59af758063e467f657bd3dbda5e6dfb211e0bd1bddbb77" }
-backend = "npm:@upstash/context7-pi"
-specifiers = ["latest"]
-
 [[tools."npm:bash-language-server"]]
 version = "5.8.1"
 aube = { path = "locks/npm-bash-language-server/5.8.1", digest = "sha256:04a8ed32e542efcdb8eec68c26ea939f6758453310d97b30d314da36841ef79f" }
 backend = "npm:bash-language-server"
-specifiers = ["latest"]
-
-[[tools."npm:pi-compact-transcript"]]
-version = "0.12.0"
-aube = { path = "locks/npm-pi-compact-transcript/0.12.0", digest = "sha256:cb368072632ba43ff3e1ee617b98902ddb0443802559d6df7ff3a0059aceb26b" }
-backend = "npm:pi-compact-transcript"
-specifiers = ["latest"]
-
-[[tools."npm:pi-goal-x"]]
-version = "0.34.1"
-aube = { path = "locks/npm-pi-goal-x/0.34.1", digest = "sha256:6626b023c68f2d668e95240cc089cfd589e6115a7fcf0fdb0476fcf6da61f4ae" }
-backend = "npm:pi-goal-x"
-specifiers = ["latest"]
-
-[[tools."npm:pi-herdr-agents"]]
-version = "3.12.1"
-aube = { path = "locks/npm-pi-herdr-agents/3.12.1", digest = "sha256:8977eb707ca4be6c460c6a22fa18731c54635a6b992fd391e44e1bbf84852168" }
-backend = "npm:pi-herdr-agents"
-specifiers = ["latest"]
-
-[[tools."npm:pi-powerline-footer"]]
-version = "0.22.0"
-aube = { path = "locks/npm-pi-powerline-footer/0.22.0", digest = "sha256:5c901986d6418dfa4f88c12cd27b36f81562a99194181ce9fd56f501de240680" }
-backend = "npm:pi-powerline-footer"
-specifiers = ["latest"]
-
-[[tools."npm:pi-system-prompt"]]
-version = "0.1.4"
-aube = { path = "locks/npm-pi-system-prompt/0.1.4", digest = "sha256:7a3352666850316494861308f83e8bed9860f7633ae48d9b8800828bd81e7cdc" }
-backend = "npm:pi-system-prompt"
-specifiers = ["latest"]
-
-[[tools."npm:pi-web-search"]]
-version = "1.7.0"
-aube = { path = "locks/npm-pi-web-search/1.7.0", digest = "sha256:7a62538552927f3240fc3a78d1ad800921c4cd9e52152e3eb4fa8e0066255fbe" }
-backend = "npm:pi-web-search"
 specifiers = ["latest"]
 
 [[tools."npm:typescript"]]
@@ -930,6 +864,61 @@ checksum = "sha256:58d6593884fec9d4424b641b92503c316d9c36decb2891ff8d73ae74dd3b6
 url = "https://github.com/jgm/pandoc/releases/download/3.14/pandoc-3.14-arm64-macOS.zip"
 url_api = "https://api.github.com/repos/jgm/pandoc/releases/assets/738063061"
 provenance = "github-attestations"
+
+[[tools."pi:@juicesharp/rpiv-ask-user-question"]]
+version = "2.15.0"
+backend = "pi:@juicesharp/rpiv-ask-user-question"
+specifiers = ["latest"]
+
+[[tools."pi:@narumitw/pi-caffeinate"]]
+version = "0.49.15"
+backend = "pi:@narumitw/pi-caffeinate"
+specifiers = ["latest"]
+
+[[tools."pi:@narumitw/pi-lsp"]]
+version = "0.49.12"
+backend = "pi:@narumitw/pi-lsp"
+specifiers = ["latest"]
+
+[[tools."pi:@tintinweb/pi-tasks"]]
+version = "0.9.1"
+backend = "pi:@tintinweb/pi-tasks"
+specifiers = ["latest"]
+
+[[tools."pi:@upstash/context7-pi"]]
+version = "0.1.3"
+backend = "pi:@upstash/context7-pi"
+specifiers = ["latest"]
+
+[[tools."pi:pi-compact-transcript"]]
+version = "0.12.0"
+backend = "pi:pi-compact-transcript"
+specifiers = ["latest"]
+
+[[tools."pi:pi-goal-x"]]
+version = "0.34.1"
+backend = "pi:pi-goal-x"
+specifiers = ["latest"]
+
+[[tools."pi:pi-herdr-agents"]]
+version = "3.12.1"
+backend = "pi:pi-herdr-agents"
+specifiers = ["latest"]
+
+[[tools."pi:pi-powerline-footer"]]
+version = "0.22.0"
+backend = "pi:pi-powerline-footer"
+specifiers = ["latest"]
+
+[[tools."pi:pi-system-prompt"]]
+version = "0.1.4"
+backend = "pi:pi-system-prompt"
+specifiers = ["latest"]
+
+[[tools."pi:pi-web-search"]]
+version = "1.7.0"
+backend = "pi:pi-web-search"
+specifiers = ["latest"]
 
 [[tools.pipx]]
 version = "1.18.19"

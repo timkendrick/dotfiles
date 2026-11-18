@@ -1,7 +1,0 @@
-{
-  "name": "mise-npm-install",
-  "private": true,
-  "dependencies": {
-    "pi-web-search": "1.7.0"
-  }
-}

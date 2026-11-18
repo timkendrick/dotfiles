@@ -1,7 +1,0 @@
-{
-  "name": "mise-npm-install",
-  "private": true,
-  "dependencies": {
-    "@narumitw/pi-caffeinate": "0.49.15"
-  }
-}
