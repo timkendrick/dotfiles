@@ -1,0 +1,12 @@
+# Ubuntu packages for user-installed tools
+# Blank lines and lines starting with # are ignored.
+
+ffmpeg
+git-absorb
+htop
+imagemagick
+postgresql-client
+tree
+wget
+zsh-autosuggestions
+zsh-syntax-highlighting
