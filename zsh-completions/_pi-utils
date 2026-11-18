@@ -15,8 +15,6 @@ _pi_utils_cached() {
 _pi-utils() {
   local -a subcommands
   subcommands=(
-    'install:install pi packages and register them in the pi settings'
-    'uninstall:uninstall pi packages and remove them from the pi settings'
     'list-extensions:list the installation paths of the installed pi packages'
     'list-prompts:list the available prompt templates'
     'prompt:print a prompt template with the arguments substituted'
@@ -33,11 +31,6 @@ _pi-utils() {
   fi
 
   case "$words[2]" in
-    uninstall)
-      local -a pkgs
-      pkgs=(${(f)"$(jq --raw-output '.packages[]?' ~/.pi/agent/settings.json 2>/dev/null)"})
-      _values -w 'package' "${pkgs[@]}"
-      ;;
     list-prompts|list-skills)
       (( CURRENT == 3 )) && _values 'option' '--paths[print file paths]'
       ;;

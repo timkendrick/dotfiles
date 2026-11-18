@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DOTFILES_PATH="$(realpath "$(dirname "$(realpath "$0")")/..")"
-PRESET_SETTINGS_PATH="$DOTFILES_PATH/config/pi/settings.json"
 USER_SETTINGS_PATH="$HOME/.pi/agent/settings.json"
 
 usage() {
@@ -14,10 +12,6 @@ Usage: $command_name <subcommand> [arguments...]
 Helpers for the pi coding agent.
 
 Subcommands:
-  install [<pkg>...]           Install pi packages with mise and register them in the pi settings.
-                               Without arguments, installs all packages from the preset settings.
-                               With arguments, also adds the packages to the preset settings.
-  uninstall <pkg>...           Uninstall pi packages and remove them from the user and preset settings
   list-extensions              List the installation paths of the installed pi packages
   list-prompts [--paths]       List the available prompt templates as /<name> (or as file paths)
   prompt [/<name> [<arg>...]]  Print a prompt template with the arguments substituted
@@ -29,8 +23,6 @@ Subcommands:
   list-thinking                List the available thinking levels
   session-pid [<dir>]          List the PIDs of pi processes whose working directory is <dir>
                                (default: the current directory). Exits with status 1 if none are found.
-
-Package names use the mise tool format (e.g. npm:pi-goal-x).
 
 Prompt templates support these placeholders:
   \$1, \$2, ... \$N    Positional arguments
@@ -47,59 +39,6 @@ EOF
 
 log() {
   echo "$*" >&2
-}
-
-# Print a JSON array that contains the given strings
-json_string_array() {
-  printf '%s\n' "$@" | jq --raw-input . | jq --slurp .
-}
-
-# Apply a jq filter to a pi settings file, treating a missing file as an empty object
-# The filter receives the given packages as the $pkgs variable
-# Usage: update_settings_packages <settings_path> <jq_filter> <pkg>...
-update_settings_packages() {
-  local settings_path="$1"
-  local filter="$2"
-  shift 2
-  log "Updating $# package(s) in ${settings_path}..."
-  local pkgs_json current_json updated_json
-  pkgs_json="$(json_string_array "$@")"
-  current_json='{}'
-  if [[ -e "$settings_path" ]]; then
-    current_json="$(cat "$settings_path")"
-  fi
-  updated_json="$(jq --argjson pkgs "$pkgs_json" "$filter" <<<"$current_json")"
-  mkdir -p "$(dirname "$settings_path")"
-  printf '%s\n' "$updated_json" >"$settings_path"
-}
-
-cmd_install() {
-  local packages=("$@")
-  local update_preset=true
-  if [[ ${#packages[@]} -eq 0 ]]; then
-    update_preset=false
-    local pkg
-    while IFS= read -r pkg; do
-      packages+=("$pkg")
-    done < <(jq --raw-output '.packages[]' "$PRESET_SETTINGS_PATH")
-  fi
-  mise use --global "${packages[@]}"
-  mise-utils link-npm-packages "${packages[@]}"
-  # shellcheck disable=SC2016
-  local filter='.packages = ((.packages // []) + $pkgs | unique | sort)'
-  update_settings_packages "$USER_SETTINGS_PATH" "$filter" "${packages[@]}"
-  if [[ "$update_preset" == true ]]; then
-    update_settings_packages "$PRESET_SETTINGS_PATH" "$filter" "${packages[@]}"
-  fi
-}
-
-cmd_uninstall() {
-  mise unuse --global "$@"
-  mise-utils unlink-npm-packages "$@"
-  # shellcheck disable=SC2016
-  local filter='.packages = ((.packages // []) | map(select(. as $p | $pkgs | index($p) | not)))'
-  update_settings_packages "$USER_SETTINGS_PATH" "$filter" "$@"
-  update_settings_packages "$PRESET_SETTINGS_PATH" "$filter" "$@"
 }
 
 cmd_list_extensions() {
@@ -334,15 +273,6 @@ subcommand="$1"
 shift
 case "$subcommand" in
   -h|--help) usage; exit 0 ;;
-  install)
-    reject_unknown_flags "" "$@"
-    cmd_install "$@"
-    ;;
-  uninstall)
-    reject_unknown_flags "" "$@"
-    require_arg_count 1 1000 "$@"
-    cmd_uninstall "$@"
-    ;;
   list-extensions)
     reject_unknown_flags "" "$@"
     require_arg_count 0 0 "$@"

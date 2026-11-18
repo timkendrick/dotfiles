@@ -1,6 +1,4 @@
 # Aliases for the pi-utils subcommands
-alias pi-install='pi-utils install'
-alias pi-uninstall='pi-utils uninstall'
 alias pi-list-extension-paths='pi-utils list-extensions'
 alias pi-list-prompt-paths='pi-utils list-prompts --paths'
 alias pi-prompt='pi-utils prompt'

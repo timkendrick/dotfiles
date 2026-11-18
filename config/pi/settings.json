@@ -1,17 +1,4 @@
 {
-  "packages": [
-    "npm:@juicesharp/rpiv-ask-user-question",
-    "npm:@narumitw/pi-caffeinate",
-    "npm:@narumitw/pi-lsp",
-    "npm:@tintinweb/pi-tasks",
-    "npm:@upstash/context7-pi",
-    "npm:pi-compact-transcript",
-    "npm:pi-goal-x",
-    "npm:pi-herdr-agents",
-    "npm:pi-powerline-footer",
-    "npm:pi-system-prompt",
-    "npm:pi-web-search"
-  ],
   "defaultTools": [
     "read",
     "bash",
