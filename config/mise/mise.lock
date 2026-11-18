@@ -42,6 +42,29 @@ checksum_source = "mise-versions"
 url = "https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-osx-arm64.tar.gz"
 url_api = "https://api.github.com/repos/duckdb/duckdb/releases/assets/662551052"
 
+[[tools."aqua:herdrdev/herdr"]]
+version = "0.9.5"
+backend = "aqua:herdrdev/herdr"
+specifiers = ["latest"]
+
+[tools."aqua:herdrdev/herdr"."platforms.linux-arm64"]
+checksum = "sha256:17d7536f2da50859523680ef279dffcac8e4a235f4e46fe8da6c2ec44141897c"
+checksum_source = "mise-versions"
+url = "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-aarch64"
+url_api = "https://api.github.com/repos/herdrdev/herdr/releases/assets/640898231"
+
+[tools."aqua:herdrdev/herdr"."platforms.linux-x64"]
+checksum = "sha256:14d9e8bc8b4a9e0118d77c32266f76d461f09b40342eb23752960bd89f59929d"
+checksum_source = "mise-versions"
+url = "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-x86_64"
+url_api = "https://api.github.com/repos/herdrdev/herdr/releases/assets/640898235"
+
+[tools."aqua:herdrdev/herdr"."platforms.macos-arm64"]
+checksum = "sha256:fb77c2232a05a8035421382c894392f4174e4e38a18e48af3dd0290157c3a7e2"
+checksum_source = "mise-versions"
+url = "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-macos-aarch64"
+url_api = "https://api.github.com/repos/herdrdev/herdr/releases/assets/640898230"
+
 [[tools.argo]]
 version = "4.1.6"
 backend = "aqua:argoproj/argo-workflows"
@@ -503,28 +526,45 @@ url = "https://get.helm.sh/helm-v3.18.4-linux-amd64.tar.gz"
 checksum = "sha256:041849741550b20710d7ad0956e805ebd960b483fe978864f8e7fdd03ca84ec8"
 url = "https://get.helm.sh/helm-v3.18.4-darwin-arm64.tar.gz"
 
-[[tools.herdr]]
-version = "0.9.5"
-backend = "aqua:herdrdev/herdr"
+[[tools."herdr:JanTvrdik/herdr-command-palette"]]
+version = "eab9400"
+backend = "herdr:JanTvrdik/herdr-command-palette"
 specifiers = ["latest"]
 
-[tools.herdr."platforms.linux-arm64"]
-checksum = "sha256:17d7536f2da50859523680ef279dffcac8e4a235f4e46fe8da6c2ec44141897c"
-checksum_source = "mise-versions"
-url = "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-aarch64"
-url_api = "https://api.github.com/repos/herdrdev/herdr/releases/assets/640898231"
+[[tools."herdr:beyondlex/herdr-recent-navigator"]]
+version = "0.8.0"
+backend = "herdr:beyondlex/herdr-recent-navigator"
+specifiers = ["latest"]
 
-[tools.herdr."platforms.linux-x64"]
-checksum = "sha256:14d9e8bc8b4a9e0118d77c32266f76d461f09b40342eb23752960bd89f59929d"
-checksum_source = "mise-versions"
-url = "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-x86_64"
-url_api = "https://api.github.com/repos/herdrdev/herdr/releases/assets/640898235"
+[[tools."herdr:devswha/ovis"]]
+version = "0.5.4"
+backend = "herdr:devswha/ovis"
+specifiers = ["latest"]
 
-[tools.herdr."platforms.macos-arm64"]
-checksum = "sha256:fb77c2232a05a8035421382c894392f4174e4e38a18e48af3dd0290157c3a7e2"
-checksum_source = "mise-versions"
-url = "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-macos-aarch64"
-url_api = "https://api.github.com/repos/herdrdev/herdr/releases/assets/640898230"
+[[tools."herdr:iurysza/termscope"]]
+version = "1.1.1"
+backend = "herdr:iurysza/termscope"
+specifiers = ["latest"]
+
+[[tools."herdr:jhochenbaum/herdr-hunk-diff"]]
+version = "0.5.0"
+backend = "herdr:jhochenbaum/herdr-hunk-diff"
+specifiers = ["latest"]
+
+[[tools."herdr:mroth/herdr-jj-status"]]
+version = "40588ef"
+backend = "herdr:mroth/herdr-jj-status"
+specifiers = ["latest"]
+
+[[tools."herdr:osamahbeig/herdr-pane-mover"]]
+version = "a9fde7a"
+backend = "herdr:osamahbeig/herdr-pane-mover"
+specifiers = ["latest"]
+
+[[tools."herdr:qu8n/herdr-automatic-rename"]]
+version = "0.15.0"
+backend = "herdr:qu8n/herdr-automatic-rename"
+specifiers = ["latest"]
 
 [[tools.hunk]]
 version = "0.25.0"

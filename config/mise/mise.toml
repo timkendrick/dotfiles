@@ -3,6 +3,7 @@ MISE_SKILL_AGENTS = "claude-code,codex"
 
 [plugins]
 duckdb = "https://github.com/timkendrick/mise-duckdb#v0.1.0"
+herdr = "https://github.com/timkendrick/mise-herdr#v0.1.0"
 skill = "https://github.com/timkendrick/mise-skill#v0.1.0"
 
 [tools]
@@ -20,7 +21,6 @@ fd = "latest"
 fzf = "latest"
 go = "latest"
 helm = "3.18.4"
-herdr = "latest"
 hunk = "latest"
 java = "21"
 jj = "latest"
@@ -50,6 +50,7 @@ uv = "latest"
 watchexec = "latest"
 "aqua:docker/cli" = "latest"
 "aqua:duckdb/duckdb" = "latest"
+"aqua:herdrdev/herdr" = "latest"
 "cargo:convfmt" = "latest"
 "cargo:nail-parquet" = "latest"
 "cargo:stu" = "latest"
@@ -66,6 +67,13 @@ watchexec = "latest"
 "github:microsoft/go-sqlcmd" = "latest"
 "github:RivoLink/leaf" = "latest"
 "go:github.com/dolmen-go/docker-list-context" = "latest"
+"herdr:beyondlex/herdr-recent-navigator" = { version = "latest", depends = ["rust"] }
+"herdr:qu8n/herdr-automatic-rename" = "latest"
+"herdr:jhochenbaum/herdr-hunk-diff" = { version = "latest", depends = ["node"] }
+"herdr:JanTvrdik/herdr-command-palette" = "latest"
+"herdr:mroth/herdr-jj-status" = "latest"
+"herdr:osamahbeig/herdr-pane-mover" = "latest"
+"herdr:iurysza/termscope" = { version = "latest", depends = ["television"] }
 "npm:@earendil-works/pi-coding-agent" = "latest"
 "npm:@juicesharp/rpiv-ask-user-question" = "latest"
 "npm:@narumitw/pi-caffeinate" = "latest"
