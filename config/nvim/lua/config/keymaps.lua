@@ -2,12 +2,18 @@
 -- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
 -- Add any additional keymaps here
 
-vim.keymap.set(
-  { "n", "v" },
-  "<Leader>fl",
-  ":call setreg('+', expand('%:.') .. ':' .. line('.'))<CR>",
-  { desc = "Copy line path to clipboard" }
-)
+vim.keymap.set("n", "<Leader>fl", function()
+  vim.fn.setreg("+", vim.fn.expand("%:.") .. ":" .. vim.fn.line("."))
+  vim.notify("Line reference copied to clipboard")
+end, { desc = "Copy line path to clipboard" })
+
+vim.keymap.set("v", "<Leader>fl", function()
+  local first = math.min(vim.fn.line("v"), vim.fn.line("."))
+  local last = math.max(vim.fn.line("v"), vim.fn.line("."))
+  local range = first == last and tostring(first) or (first .. "-" .. last)
+  vim.fn.setreg("+", vim.fn.expand("%:.") .. ":" .. range)
+  vim.notify("Line reference copied to clipboard")
+end, { desc = "Copy line range path to clipboard" })
 
 vim.keymap.set({ "v" }, "<Leader>y", '"+ygv', { desc = "Copy selection to clipboard" })
 
