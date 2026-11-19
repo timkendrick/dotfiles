@@ -30,6 +30,8 @@ brew "mise"
 brew "ollama", restart_service: :changed
 # Package compiler and linker metadata toolkit
 brew "pkgconf"
+# SOcket CAT: netcat on steroids
+brew "socat"
 # General purpose fuzzy finder TUI
 brew "television"
 # Display directories as trees (with optional color/HTML output)
