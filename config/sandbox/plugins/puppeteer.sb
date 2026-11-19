@@ -1,0 +1,2 @@
+;; Allow read access to ~/.cache/puppeteer/
+(allow file-read* (subpath (string-append (param "HOME") "/.cache/puppeteer")))
