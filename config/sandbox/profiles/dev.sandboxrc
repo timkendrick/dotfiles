@@ -36,6 +36,7 @@
 --plugin go
 --plugin helm
 --plugin herdr
+--plugin hunk
 --plugin java
 --plugin jj
 --plugin lazygit

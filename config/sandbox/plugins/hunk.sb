@@ -1,0 +1,4 @@
+;; Allow read-only access to ~/.config/hunk/
+(allow file-read* (subpath (string-append (param "HOME") "/.config/hunk")))
+;; Allow read-only access to ~/.hunk/
+(allow file-read* (subpath (string-append (param "HOME") "/.hunk")))
