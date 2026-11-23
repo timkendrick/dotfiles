@@ -1,3 +1,6 @@
 {
-  "MD013": false // line_length
+  "MD013": false, // line_length
+  "MD060": { // table-column-style
+    "style": "compact"
+  }
 }
