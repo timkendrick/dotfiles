@@ -92,6 +92,7 @@ watchexec = "latest"
 "pi:pi-web-search" = "latest"
 "pipx:huggingface_hub" = "latest"
 "skill:rodbv/socratic-skills" = { version = "ref:main", skills = ["guide-me", "quiz-me"] }
+yq = "latest"
 
 [settings]
 experimental = true
