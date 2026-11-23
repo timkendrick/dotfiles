@@ -4,6 +4,10 @@ if [[ -n "$DOTFILES_DEBUG" ]]; then
     _DOTFILES_START=$EPOCHREALTIME
 fi
 
+# Keep the command history in the XDG state directory
+export HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
+[[ -d "${HISTFILE:h}" ]] || mkdir -p "${HISTFILE:h}"
+
 # Increase command history limit and ignore duplicates
 export HISTSIZE=1000000
 export SAVEHIST=1000000
