@@ -94,9 +94,19 @@ load_env() {
     if [[ -n "$DOTFILES_DEBUG" ]]; then
         echo "[dotfiles] sourcing ${file:t}…" >&2
     fi
-    local vars                                                                                                                                   
-    vars=$(< "$file" grep -v '^#' | xargs)                                                                                                        
-    [[ -n "$vars" ]] && export ${(z)vars}  
+    local line name value
+    for line in "${(@f)$(<"$file")}"; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        [[ "$line" == *=* ]] || continue
+        name="${line%%=*}"
+        value="${line#*=}"
+        name="${name#export }"
+        [[ "$name" =~ '^[A-Za-z_][A-Za-z0-9_]*$' ]] || continue
+        if [[ "$value" == \"*\" || "$value" == \'*\' ]]; then
+            value="${value:1:-1}"
+        fi
+        export "$name=$value"
+    done
 }
 
 # Helper: export one environment variable per file in a directory, named after the file
