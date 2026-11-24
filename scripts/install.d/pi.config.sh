@@ -4,6 +4,14 @@ link_config_dir "$DOTFILES_PATH/config/agents" "$HOME/.pi/agent"
 link_config_dir "$DOTFILES_PATH/config/pi/agent" "$HOME/.pi/agent"
 merge_json "$HOME/.pi/agent/settings.json" "$DOTFILES_PATH/config/pi/settings.json"
 
+# Replace the enabled models with the comma-separated patterns in PI_ENABLED_MODELS
+if [[ -n "${PI_ENABLED_MODELS:-}" ]]; then
+  merge_json "$HOME/.pi/agent/settings.json" <(
+    jq -n --arg models "$PI_ENABLED_MODELS" \
+      '{ enabledModels: ($models | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) }'
+  )
+fi
+
 # Seed OAuth credentials from refresh tokens, leaving existing provider entries untouched
 register_pi_oauth() {
   local provider="$1"
