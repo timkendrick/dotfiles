@@ -1,3 +1,7 @@
+if [ -n "$DOTFILES_TT_PATH" ]; then
+  export PATH="$PATH:$DOTFILES_TT_PATH"
+fi
+
 alias tt-select='tt list --quiet | fzf'
 alias tt-select-todo='tt list --quiet --status TODO | fzf'
 alias tt-select-active='tt list --quiet --status IN-PROGRESS | fzf'
