@@ -69,6 +69,13 @@ width = "80%"
 height = "80%"
 
 [[keys.command]]
+key = "prefix+shift+k"
+type = "popup"
+command = "k9s --namespace $(kubectl get namespace --output=name | sed 's/^namespace\\///' | fzf --header 'Select a namespace')"
+width = "80%"
+height = "80%"
+
+[[keys.command]]
 key = "prefix+shift+h"
 type = "plugin_action"
 command = "jhochenbaum.hunkdiff.review"
