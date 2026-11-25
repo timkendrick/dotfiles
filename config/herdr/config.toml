@@ -76,6 +76,13 @@ width = "80%"
 height = "80%"
 
 [[keys.command]]
+key = "prefix+shift+l"
+type = "popup"
+command = "tt log --all"
+width = "80%"
+height = "80%"
+
+[[keys.command]]
 key = "prefix+shift+h"
 type = "plugin_action"
 command = "jhochenbaum.hunkdiff.review"
