@@ -10,6 +10,8 @@ Edit a temporary file with the configured editor, writing the result to stdout.
 
 Any text piped into the command is used as the initial editor contents.
 
+The command must run in the foreground pipeline: pipe the output to stdout, not a process substitution.
+
 The editor is determined by the following environment variables, in order of precedence:
   EDIT_EDITOR  Editor command to use
   VISUAL       Fallback editor if EDIT_EDITOR is unset
@@ -30,6 +32,18 @@ if [[ $# -gt 0 ]]; then
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 1 ;;
   esac
+fi
+
+# The editor cannot use the terminal from a background process group: the OS would suspend it indefinitely
+is_background_process() {
+  local pgid tpgid
+  read -r pgid tpgid < <(ps -o pgid=,tpgid= -p $$ 2>/dev/null) || return 1
+  [[ -n "$pgid" && -n "$tpgid" && "$pgid" != "$tpgid" ]]
+}
+
+if is_background_process; then
+  log "Cannot open the editor from a background process; pipe the output instead"
+  exit 1
 fi
 
 # Resolve the editor to use
