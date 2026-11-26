@@ -6,9 +6,12 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
     vim.api.nvim_echo({
       { "Failed to clone lazy.nvim:\n", "ErrorMsg" },
       { out, "WarningMsg" },
-      { "\nPress any key to exit..." },
     }, true, {})
-    vim.fn.getchar()
+    -- Headless nvim has no UI to read a key from, so getchar() would wait forever
+    if #vim.api.nvim_list_uis() > 0 then
+      vim.api.nvim_echo({ { "\nPress any key to exit..." } }, true, {})
+      vim.fn.getchar()
+    end
     os.exit(1)
   end
 end
@@ -31,6 +34,12 @@ require("lazy").setup({
     -- version = "*", -- try installing the latest stable version for plugins that support semver
   },
   install = { colorscheme = { "tokyonight", "habamax" } },
+  -- Keep headless output (e.g. image build logs) to plain log messages
+  headless = {
+    process = false,
+    task = false,
+    colors = vim.env.NO_COLOR == nil,
+  },
   checker = {
     enabled = true, -- check for plugin updates periodically
     notify = false, -- notify on update
