@@ -21,7 +21,10 @@ end
 
 return {
   "folke/persistence.nvim",
-  opts = {},
+  opts = {
+    dir = vim.env.NVIM_SESSION_DIR and (vim.env.NVIM_SESSION_DIR .. "/") or (vim.fn.stdpath("state") .. "/sessions/"),
+    branch = false,
+  },
   -- Enable session persistence when nvim is started with no arguments or a single directory argument
   cond = function()
     return no_args() or directory_arg() ~= nil
