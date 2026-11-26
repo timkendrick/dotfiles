@@ -83,6 +83,13 @@ width = "80%"
 height = "80%"
 
 [[keys.command]]
+key = "prefix+shift+e"
+type = "popup"
+command = "nvim"
+width = "80%"
+height = "80%"
+
+[[keys.command]]
 key = "prefix+shift+h"
 type = "plugin_action"
 command = "jhochenbaum.hunkdiff.review"
