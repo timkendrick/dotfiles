@@ -40,6 +40,7 @@
 --plugin java
 --plugin jj
 --plugin lazygit
+--plugin less
 --plugin maven
 --plugin mise
 --plugin node
