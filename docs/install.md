@@ -14,7 +14,7 @@ The script installs the packages and registers the configuration files. Each act
   - On macOS, it installs Homebrew (if missing) and the packages in `config/brew/Brewfile`.
   - It installs the `mise` tools in `config/mise/mise.toml`, at the versions in `config/mise/mise.lock`.
 - `scripts/install --config` registers only the configuration files:
-  - It adds `source` lines for `.bashrc`, `.zshrc` and `config/.vimrc` to the files in your home directory.
+  - It adds `source` lines for `.bashrc`, `.zshenv`, `.zshrc` and `config/.vimrc` to the files in your home directory.
   - It links the `vim`, `nvim`, `pi`, `claude`, `herdr`, `jjui` and `sandbox` configuration into your home directory. On macOS, it also links the `ghostty` configuration.
   - It links the Docker CLI plugins that `mise` installs.
   - It adds `Include config.d/*.conf` to the top of `~/.ssh/config`, for the host entries that `ssh-hosts` manages.

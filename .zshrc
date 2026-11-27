@@ -25,7 +25,6 @@ setopt HIST_BEEP
 PACKAGE_ROOT="${0:a:h}"
 
 BIN_PATH="$PACKAGE_ROOT/bin"
-ZSH_ENV_PATH="$PACKAGE_ROOT/zsh-env"
 ZSH_FPATH_PATH="$PACKAGE_ROOT/zsh-fpath"
 ZSH_PLUGINS_PATH="$PACKAGE_ROOT/zsh-plugins"
 ZSH_PROMPTS_PATH="$PACKAGE_ROOT/zsh-prompts"
@@ -88,42 +87,6 @@ load_completions() {
     compdef "__lazy_${cmd}" "${cmd}"
 }
 
-# Helper: load a .env file, logging to stderr if DOTFILES_DEBUG is set
-load_env() {
-    local file="$1"
-    if [[ -n "$DOTFILES_DEBUG" ]]; then
-        echo "[dotfiles] sourcing ${file:t}…" >&2
-    fi
-    local line name value
-    for line in "${(@f)$(<"$file")}"; do
-        [[ -z "$line" || "$line" == \#* ]] && continue
-        [[ "$line" == *=* ]] || continue
-        name="${line%%=*}"
-        value="${line#*=}"
-        name="${name#export }"
-        [[ "$name" =~ '^[A-Za-z_][A-Za-z0-9_]*$' ]] || continue
-        if [[ "$value" == \"*\" || "$value" == \'*\' ]]; then
-            value="${value:1:-1}"
-        fi
-        export "$name=$value"
-    done
-}
-
-# Helper: export one environment variable per file in a directory, named after the file
-# Hidden files and files whose names are not valid variable names are ignored.
-load_env_dir() {
-    local dir="$1"
-    if [[ -n "$DOTFILES_DEBUG" ]]; then
-        echo "[dotfiles] loading environment directory ${dir}…" >&2
-    fi
-    local file name
-    for file in "$dir"/*(N-.); do
-        name="${file:t}"
-        [[ "$name" =~ '^[A-Za-z_][A-Za-z0-9_]*$' ]] || continue
-        export "$name=$(<"$file")"
-    done
-}
-
 # Helper: append the existing directories listed in a .fpath file to _fpath_dirs
 load_fpath() {
     local file="$1"
@@ -140,21 +103,6 @@ load_fpath() {
         fi
     done
 }
-
-# Initialize zsh shell environment variables
-for config in "$ZSH_ENV_PATH"/*.env(ND); do
-    is_current_os_file "$config" || continue
-    [[ -f "$config" ]] && load_env "$config"
-done
-
-# Initialize environment variables from mounted secrets, which override the zsh environment files
-# DOTFILES_ENV_MOUNT_DIR holds one subdirectory per mounted secret, with one file per environment variable
-# (e.g. $DOTFILES_ENV_MOUNT_DIR/my-secret/API_KEY contains the value of API_KEY)
-if [[ -n "${DOTFILES_ENV_MOUNT_DIR:-}" ]]; then
-    for env_dir in "$DOTFILES_ENV_MOUNT_DIR"/*(N-/); do
-        load_env_dir "$env_dir"
-    done
-fi
 
 # Enable custom zsh completions, followed by additional completion directories
 typeset -a _fpath_dirs=()
