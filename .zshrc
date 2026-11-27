@@ -168,10 +168,12 @@ unset _fpath_dirs
 # Activate shell completions
 autoload bashcompinit && bashcompinit
 autoload -Uz compinit
-if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
-    compinit
+ZSH_COMPDUMP="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump"
+[[ -d "${ZSH_COMPDUMP:h}" ]] || mkdir -p "${ZSH_COMPDUMP:h}"
+if [[ -n $ZSH_COMPDUMP(#qN.mh+24) ]]; then
+    compinit -d "$ZSH_COMPDUMP"
 else
-    compinit -C
+    compinit -C -d "$ZSH_COMPDUMP"
 fi
 
 # Load shell plugins
