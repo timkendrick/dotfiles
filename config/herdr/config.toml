@@ -1,5 +1,9 @@
 onboarding = false
 
+[terminal]
+# Start panes as login shells on every OS, so that the dotfiles .zlogin runs in dev containers
+shell_mode = "login"
+
 [ui]
 prompt_new_tab_name = false
 
