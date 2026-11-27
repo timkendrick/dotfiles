@@ -251,6 +251,32 @@ merge_json() {
   fi
 }
 
+# Merge a YAML file from this repository into a YAML file in the home directory
+# Maps merge recursively; lists in the source replace lists in the target. A missing target file counts as empty.
+merge_yaml() {
+  local target="$1"
+  local source="$2"
+  local merged
+  if [[ -e "$target" ]]; then
+    # shellcheck disable=SC2016
+    merged="$(yq eval-all '. as $item ireduce ({}; . * $item)' "$target" "$source")"
+    if [[ "$merged" == "$(yq . "$target")" ]]; then
+      log "Already merged: $target"
+      return
+    fi
+  else
+    merged="$(yq . "$source")"
+  fi
+  log "+ merge-yaml $target < $source"
+  debug "Merged YAML for $target:"$'\n'"$merged"
+  if [[ "$dry_run" == false ]]; then
+    if [[ ! -d "$(dirname "$target")" ]]; then
+      mkdir -p "$(dirname "$target")"
+    fi
+    printf '%s\n' "$merged" >"$target"
+  fi
+}
+
 
 # Print one record per plugin file in PLUGINS_PATH and DOTFILES_PLUGIN_MOUNT_DIR, unsorted
 # Each record holds the fields <sort key>, <name>, <kind>, <os> and <path>, separated by RECORD_SEPARATOR.
