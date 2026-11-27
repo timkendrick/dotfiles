@@ -4,6 +4,10 @@ onboarding = false
 # Start panes as login shells on every OS, so that the dotfiles .zlogin runs in dev containers
 shell_mode = "login"
 
+[experimental]
+# Restore pane contents after session reload
+pane_history = true
+
 [ui]
 prompt_new_tab_name = false
 
