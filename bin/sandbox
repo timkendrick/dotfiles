@@ -595,7 +595,7 @@ process_args() {
                     exit 1
                 fi
                 add_section "--profile $profile_name"
-                (( _sandbox_section_depth++ ))
+                (( ++_sandbox_section_depth ))
                 local profile_tokens=()
                 while IFS= read -r token; do profile_tokens+=("$token"); done < <(parse_rc_file "$profile_file")
                 process_args "${profile_tokens[@]+"${profile_tokens[@]}"}"
